@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+﻿cmake_minimum_required(VERSION 3.10)
 project(FrameZero VERSION 1.0 LANGUAGES CXX)
 
 # Set C++ Standard
@@ -35,7 +35,6 @@ target_link_libraries(FrameZeroTests PRIVATE framezero)
 # Demo executable
 add_executable(FrameZeroDemo 
     src/main.cpp
-    src/web_server.cpp
     src/vendor/imgui/imgui.cpp
     src/vendor/imgui/imgui_draw.cpp
     src/vendor/imgui/imgui_tables.cpp

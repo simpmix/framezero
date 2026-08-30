@@ -51,6 +51,20 @@ public:
         colors[ImGuiCol_Separator]              = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
     }
 
+    void drawViewportWindow(RenderTexture2D* viewport) {
+        ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
+        
+        // Remove window padding for the viewport so the game fills the window
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        if (ImGui::Begin("Scene Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+            // Draw the Raylib RenderTexture directly into ImGui!
+            rlImGuiImageRenderTexture(viewport);
+        }
+        ImGui::End();
+        ImGui::PopStyleVar();
+    }
+
     void draw(RollbackEngine* engine, PlayerController* players, int playerCount) {
         if (!engine) return;
 

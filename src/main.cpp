@@ -1,21 +1,19 @@
-#include <raylib.h>
+﻿#include <raylib.h>
 #include "rollback_netcode.h"
 #include "player_controller.h"
 #include "interpolation_renderer.h"
 #include "renderer.h"
 #include "input.h"
 #include "editor_gui.h"
-#include "web_server.h"
-#include <thread>
 
 using namespace FrameZero;
 
 int main() {
-    const int screenWidth = 800;
-    const int screenHeight = 600;
+    const int screenWidth = 1280;
+    const int screenHeight = 720;
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(screenWidth, screenHeight, "FrameZero Engine Demo");
+    InitWindow(screenWidth, screenHeight, "FrameZero Engine");
     SetTargetFPS(60);
     
     rlImGuiSetup(true);
@@ -43,13 +41,12 @@ int main() {
     PlayerController pc1, pc2;
     pc1.bind(&engine.bodies[0]);
     pc2.bind(&engine.bodies[1]);
-    
-    g_p1 = &pc1;
-    std::thread webThread(RunWebServer);
-    webThread.detach();
 
     InterpolationRenderer renderer;
     
+    // Create a RenderTexture for the game viewport
+    RenderTexture2D viewport = LoadRenderTexture(800, 600);
+
     // Fixed timestep logic
     double accumulator = 0.0;
     const double dt = 1.0 / 60.0;
@@ -91,24 +88,33 @@ int main() {
         int renderCount = 0;
         const auto* renderStates = renderer.getInterpolatedState(alpha, renderCount);
 
-        BeginDrawing();
+        // 1. Draw Game to Viewport Texture
+        BeginTextureMode(viewport);
         ClearBackground(RAYWHITE);
-        
         PlayerController players[2] = { pc1, pc2 };
         if (editor.showPhysicsBodies || editor.showHitboxes) {
             DebugRenderer::Draw(renderStates, renderCount, players, 2);
         }
+        DrawText("Game Viewport", 10, 10, 20, DARKGRAY);
+        EndTextureMode();
+
+        // 2. Draw Editor UI to Screen
+        BeginDrawing();
+        ClearBackground(GetColor(0x222222FF)); // Dark editor background
         
-        DrawText("FrameZero Engine - WASD/F for P1 | Arrows/Enter for P2", 10, 10, 20, DARKGRAY);
-
-        // GUI Overlay
         rlImGuiBegin();
+        
+        // Draw the main editor window that contains the game
+        editor.drawViewportWindow(&viewport);
+        
+        // Draw the hierarchy and inspector
         editor.draw(&engine, players, 2);
+        
         rlImGuiEnd();
-
         EndDrawing();
     }
 
+    UnloadRenderTexture(viewport);
     rlImGuiShutdown();
     CloseWindow();
     return 0;

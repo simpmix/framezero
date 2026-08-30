@@ -1,8 +1,0 @@
-﻿#pragma once
-#include <atomic>
-
-namespace FrameZero { class PlayerController; }
-extern FrameZero::PlayerController* g_p1;
-extern std::atomic<bool> g_serverRunning;
-
-void RunWebServer();
