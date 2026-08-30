@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
   <img src="https://raw.githubusercontent.com/simpmix/framezero/main/README_LOGO.png?v=2" alt="FrameZero Logo" width="600" />
   <h1>FrameZero Engine</h1>
   <p><b>The Ultimate C++ 2D Framework for Deterministic Rollback Netcode</b></p>
@@ -38,7 +38,7 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 * **Behavior Tree AI**: Native C++ behavior trees (`BTSequence`, `BTSelector`) for deterministic enemy AI without the overhead of Lua scripting.
 * **Rollback-Safe Audio & Particles**: Prevents explosive "ear-rape" audio duplication and visual ghosting during network resimulations.
 
-### 🌐 Cross-Platform Mastery
+### 🚀 Cross-Platform Mastery
 * **Automated CI/CD**: Fully tested via GitHub Actions on Ubuntu, macOS, and Windows.
 * **Cross-OS Thread Pool**: Offload heavy AI or Audio tasks to a C++11 `<thread>` pool without stalling the 60FPS main loop.
 * **Smart Asset Manager**: Automatically normalizes file paths (`\` vs `/`) and lowercase rules to prevent "works on my machine" crashes between Windows and Linux.
@@ -48,7 +48,7 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Getting Started
 
 ### Prerequisites
 * **Windows**: Visual Studio 2022 (Desktop Development with C++)
@@ -63,7 +63,8 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 **Visual Studio (Windows)**
 1. Clone the repository and open the folder in Visual Studio.
 2. Wait for the automatic CMake configuration to complete.
-3. Build all and run `FrameZeroDemo.exe` or `FrameZeroTests.exe`.
+3. Build all and run `FrameZeroTests.exe` to verify the core engine math.
+4. *Note: FrameZero is a headless engine library. Include `framezero` in your own project's CMake to build a game.*
 
 **Terminal (Linux / macOS)**
 ```bash
@@ -72,12 +73,12 @@ cd framezero
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build .
-./FrameZeroDemo
+./FrameZeroTests
 ```
 
 ---
 
-## 📖 Code Examples
+## 💻 Code Examples
 
 ### 1. Fighting Game Motions & Rotated Hitboxes
 ```cpp
