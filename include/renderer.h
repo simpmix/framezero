@@ -10,11 +10,12 @@ namespace FrameZero {
 
 class DebugRenderer {
 public:
-    static void Draw(const std::vector<RenderState>& states, const PlayerController* players, int playerCount) {
+    static void Draw(const RenderState* states, int stateCount, const PlayerController* players, int playerCount) {
         float screenHeight = static_cast<float>(GetScreenHeight());
         
         // Draw bodies
-        for (const auto& state : states) {
+        for (int i = 0; i < stateCount; i++) {
+            const auto& state = states[i];
             if (!state.active) continue;
             
             float px = static_cast<float>(state.position.x.toDouble());

@@ -80,13 +80,14 @@ int main() {
 
         // Interpolation
         Fixed alpha(accumulator / dt);
-        auto renderStates = renderer.getInterpolatedState(alpha);
+        int renderCount = 0;
+        const auto* renderStates = renderer.getInterpolatedState(alpha, renderCount);
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
         
-        PlayerController controllers[2] = { pc1, pc2 };
-        DebugRenderer::Draw(renderStates, controllers, 2);
+        PlayerController players[2] = { pc1, pc2 };
+        DebugRenderer::Draw(renderStates, renderCount, players, 2);
         
         DrawText("FrameZero Engine - WASD/F for P1 | Arrows/Enter for P2", 10, 10, 20, DARKGRAY);
 

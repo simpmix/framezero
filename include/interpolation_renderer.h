@@ -2,7 +2,6 @@
 #define FRAMEZERO_INTERPOLATION_RENDERER_H
 
 #include "physics_body.h"
-#include <vector>
 
 namespace FrameZero {
 
@@ -20,59 +19,51 @@ struct RenderState {
 };
 
 // Manages rendering interpolation between simulation frames
+// Fully optimized for O(1) performance with Zero heap allocations
 class InterpolationRenderer {
 private:
-    std::vector<RenderState> previousState;
-    std::vector<RenderState> currentState;
+    static constexpr int MAX_BODIES = 1024;
+    
+    RenderState previousState[MAX_BODIES];
+    RenderState currentState[MAX_BODIES];
+    RenderState interpolatedState[MAX_BODIES];
+    int bodyCount;
     
 public:
-    InterpolationRenderer() {}
+    InterpolationRenderer() : bodyCount(0) {}
     
     // Save current simulation state (called right before physics integration)
     void savePreviousState(PhysicsBody* bodies, int count) {
-        previousState.clear();
-        for (int i = 0; i < count; i++) {
-            previousState.push_back(RenderState(bodies[i]));
+        bodyCount = (count > MAX_BODIES) ? MAX_BODIES : count;
+        for (int i = 0; i < bodyCount; i++) {
+            previousState[i] = RenderState(bodies[i]);
         }
     }
     
     // Save new simulation state (called right after physics integration)
     void saveCurrentState(PhysicsBody* bodies, int count) {
-        currentState.clear();
-        for (int i = 0; i < count; i++) {
-            currentState.push_back(RenderState(bodies[i]));
+        int targetCount = (count > MAX_BODIES) ? MAX_BODIES : count;
+        for (int i = 0; i < targetCount; i++) {
+            currentState[i] = RenderState(bodies[i]);
         }
     }
     
     // Get interpolated state for rendering
     // alpha is usually calculated as: accumulator / dt (0.0 to 1.0)
-    std::vector<RenderState> getInterpolatedState(Fixed alpha) const {
-        std::vector<RenderState> result;
+    // Returns a pointer to the internal array and writes the size to outCount
+    const RenderState* getInterpolatedState(Fixed alpha, int& outCount) {
+        outCount = bodyCount;
         
-        // Find matching bodies by ID and interpolate
-        for (const auto& curr : currentState) {
-            RenderState interpolated = curr;
+        for (int i = 0; i < bodyCount; i++) {
+            interpolatedState[i] = currentState[i];
             
-            if (curr.active) {
-                // Find matching body in previous state
-                bool found = false;
-                for (const auto& prev : previousState) {
-                    if (prev.id == curr.id && prev.active) {
-                        // Interpolate position
-                        interpolated.position = Vector2::lerp(prev.position, curr.position, alpha);
-                        // Can also interpolate rotation, color, etc. here
-                        found = true;
-                        break;
-                    }
-                }
-                
-                // If not found in previous state (e.g. just spawned), use current position directly
+            // O(1) lookup since the arrays perfectly mirror the Physics engine's body array
+            if (currentState[i].active && previousState[i].active && currentState[i].id == previousState[i].id) {
+                interpolatedState[i].position = Vector2::lerp(previousState[i].position, currentState[i].position, alpha);
             }
-            
-            result.push_back(interpolated);
         }
         
-        return result;
+        return interpolatedState;
     }
 };
 

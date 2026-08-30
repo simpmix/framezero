@@ -390,9 +390,10 @@ void test_interpolation_renderer() {
     renderer.saveCurrentState(bodies, 1);
     
     // Interpolate at 50%
-    auto interpState = renderer.getInterpolatedState(Fixed(0.5));
+    int interpCount = 0;
+    const auto* interpState = renderer.getInterpolatedState(Fixed(0.5), interpCount);
     
-    TEST_ASSERT(interpState.size() == 1, "Got 1 interpolated state");
+    TEST_ASSERT(interpCount == 1, "Got 1 interpolated state");
     
     double interpX = interpState[0].position.x.toDouble();
     std::cout << "Interpolated X at alpha 0.5: " << interpX << " (expected: 5.0)" << std::endl;

@@ -74,11 +74,14 @@ int main(int argc, char** argv) {
         }
         
         // Draw
+        PlayerController players[] = {p1, p2};
+        int renderCount = 0;
+        const auto* renderStates = renderer.getInterpolatedState(Fixed(1.0), renderCount);
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
         
-        PlayerController players[] = {p1, p2};
-        DebugRenderer::Draw(renderer.getInterpolatedState(Fixed(1.0)), players, 2);
+        DebugRenderer::Draw(renderStates, renderCount, players, 2);
         
         DrawText(TextFormat("Replay Frame: %d / %d", currentReplayFrame, replaySys.getFrameCount()), 10, 10, 20, DARKGRAY);
         DrawText("SPACE to Pause/Play | RIGHT ARROW to Step Frame", 10, 40, 20, GRAY);
