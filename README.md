@@ -23,12 +23,15 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 
 ### 🧮 100% Deterministic Math & Physics
 * **16.16 Fixed-Point Math (`Fixed`)**: Floats are banned. FrameZero uses a custom fixed-point math library with deterministic Trigonometry (`sin`, `cos`, `atan2`) and `Vector2` logic.
+* **Rollback RNG**: A fast, deterministic XorShift32 Random Number Generator that can perfectly serialize its seed during rollback resimulations to guarantee identical loot drops and critical hits.
 * **Spatial Grid Hash Broadphase**: Scales collision detection to thousands of objects deterministically.
 * **OBB + SAT Collision**: Full support for rotated hitboxes (Oriented Bounding Boxes) using the Separating Axis Theorem (SAT).
 * **Deterministic A* Pathfinding**: Navigates the Spatial Grid deterministically, avoiding floating-point heuristic drift.
 
 ### 🎮 Fighting Game & Action Tools
 * **Motion Input Parser**: Track 60 frames of input history and instantly detect advanced joystick motions like Quarter-Circle Forward (QCF) or Dragon Punch (DP).
+* **Animator State Machine**: A Unity-style node-based animator component that manages complex transitions between states (Idle, Walk, Attack) based on conditional lambdas.
+* **Dynamic Camera Controller**: A fighting-game specific camera that automatically tracks the midpoint between players, dynamically zooms based on distance, and enforces hard stage boundaries deterministically.
 * **Behavior Tree AI**: Native C++ behavior trees (`BTSequence`, `BTSelector`) for deterministic enemy AI without the overhead of Lua scripting.
 * **Rollback-Safe Audio & Particles**: Prevents explosive "ear-rape" audio duplication and visual ghosting during network resimulations.
 
