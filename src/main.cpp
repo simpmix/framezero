@@ -5,16 +5,22 @@
 #include "renderer.h"
 #include "input.h"
 
+#include "editor_gui.h"
+
 using namespace FrameZero;
 
 int main() {
     const int screenWidth = 800;
     const int screenHeight = 600;
 
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "FrameZero Engine Demo");
     SetTargetFPS(60);
+    
+    rlImGuiSetup(true);
 
     RollbackEngine engine;
+    EditorGUI editor;
     
     // Initialize 2 bodies
     PhysicsBody initialBodies[2];
@@ -49,36 +55,32 @@ int main() {
 
         Input p1_input, p2_input;
         
-        if (IsKeyDown(KEY_W)) p1_input.moveY = 127;
-        else if (IsKeyDown(KEY_S)) p1_input.moveY = -127;
-        if (IsKeyDown(KEY_D)) p1_input.moveX = 127;
-        else if (IsKeyDown(KEY_A)) p1_input.moveX = -127;
-        if (IsKeyDown(KEY_F)) p1_input.buttons |= 1;
+        // Prevent game input when interacting with UI
+        if (!ImGui::GetIO().WantCaptureKeyboard) {
+            if (IsKeyDown(KEY_W)) p1_input.moveY = 127;
+            else if (IsKeyDown(KEY_S)) p1_input.moveY = -127;
+            if (IsKeyDown(KEY_D)) p1_input.moveX = 127;
+            else if (IsKeyDown(KEY_A)) p1_input.moveX = -127;
+            if (IsKeyDown(KEY_F)) p1_input.buttons |= 1;
 
-        if (IsKeyDown(KEY_UP)) p2_input.moveY = 127;
-        else if (IsKeyDown(KEY_DOWN)) p2_input.moveY = -127;
-        if (IsKeyDown(KEY_RIGHT)) p2_input.moveX = 127;
-        else if (IsKeyDown(KEY_LEFT)) p2_input.moveX = -127;
-        if (IsKeyDown(KEY_ENTER)) p2_input.buttons |= 1;
+            if (IsKeyDown(KEY_UP)) p2_input.moveY = 127;
+            else if (IsKeyDown(KEY_DOWN)) p2_input.moveY = -127;
+            if (IsKeyDown(KEY_RIGHT)) p2_input.moveX = 127;
+            else if (IsKeyDown(KEY_LEFT)) p2_input.moveX = -127;
+            if (IsKeyDown(KEY_ENTER)) p2_input.buttons |= 1;
+        }
 
         while (accumulator >= dt) {
-            // Save previous state
             renderer.savePreviousState(engine.bodies, engine.bodyCount);
 
-            // Update controllers
             pc1.update(p1_input);
             pc2.update(p2_input);
-
-            // Advance frame (simulateFrame handles local/remote inputs)
             engine.simulateFrame(p1_input, p2_input);
 
-            // Save current state
             renderer.saveCurrentState(engine.bodies, engine.bodyCount);
-
             accumulator -= dt;
         }
 
-        // Interpolation
         Fixed alpha(accumulator / dt);
         int renderCount = 0;
         const auto* renderStates = renderer.getInterpolatedState(alpha, renderCount);
@@ -87,13 +89,21 @@ int main() {
         ClearBackground(RAYWHITE);
         
         PlayerController players[2] = { pc1, pc2 };
-        DebugRenderer::Draw(renderStates, renderCount, players, 2);
+        if (editor.showPhysicsBodies || editor.showHitboxes) {
+            DebugRenderer::Draw(renderStates, renderCount, players, 2);
+        }
         
         DrawText("FrameZero Engine - WASD/F for P1 | Arrows/Enter for P2", 10, 10, 20, DARKGRAY);
+
+        // GUI Overlay
+        rlImGuiBegin();
+        editor.draw(&engine, players, 2);
+        rlImGuiEnd();
 
         EndDrawing();
     }
 
+    rlImGuiShutdown();
     CloseWindow();
     return 0;
 }

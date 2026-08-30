@@ -11,10 +11,9 @@ set(CMAKE_POLICY_VERSION_MINIMUM "3.5" CACHE STRING "Minimum CMake policy versio
 include(FetchContent)
 FetchContent_Declare(
     raylib
-    URL https://github.com/raysan5/raylib/archive/refs/tags/5.0.zip
+    URL https://github.com/raysan5/raylib/archive/refs/tags/5.5.zip
 )
 FetchContent_MakeAvailable(raylib)
-
 # FrameZero Engine library
 add_library(framezero STATIC src/fixed_point.cpp)
 target_include_directories(framezero PUBLIC 
@@ -32,7 +31,15 @@ add_executable(FrameZeroTests tests/test_engine.cpp)
 target_link_libraries(FrameZeroTests PRIVATE framezero)
 
 # Demo executable
-add_executable(FrameZeroDemo src/main.cpp)
+add_executable(FrameZeroDemo 
+    src/main.cpp
+    src/vendor/imgui/imgui.cpp
+    src/vendor/imgui/imgui_draw.cpp
+    src/vendor/imgui/imgui_tables.cpp
+    src/vendor/imgui/imgui_widgets.cpp
+    src/vendor/imgui/rlImGui.cpp
+)
+target_include_directories(FrameZeroDemo PRIVATE src/vendor/imgui)
 target_link_libraries(FrameZeroDemo PRIVATE framezero)
 
 # Tools
