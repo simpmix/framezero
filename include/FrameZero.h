@@ -22,6 +22,7 @@
 
 // Rollback Netcode & Logic
 #include "input.h"
+#include "input_parser.h"
 #include "state_serialization.h"
 #include "rollback_netcode.h"
 #include "replay_system.h"

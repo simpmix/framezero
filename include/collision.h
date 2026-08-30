@@ -16,6 +16,65 @@ struct CollisionContact {
     CollisionContact() : bodyA(nullptr), bodyB(nullptr), normal(0, 0), penetration(0), contactPoint(0, 0) {}
 };
 
+struct OBB {
+    Vector2 center;
+    Vector2 extents; // Half-widths
+    Fixed angle;     // Rotation in radians
+    
+    // Get the 4 corners of the OBB
+    void getVertices(Vector2* outVertices) const {
+        Fixed cosA = Fixed::cos(angle);
+        Fixed sinA = Fixed::sin(angle);
+        
+        Vector2 xDir = Vector2(cosA, sinA) * extents.x;
+        Vector2 yDir = Vector2(-sinA, cosA) * extents.y;
+        
+        outVertices[0] = center + xDir + yDir;
+        outVertices[1] = center - xDir + yDir;
+        outVertices[2] = center - xDir - yDir;
+        outVertices[3] = center + xDir - yDir;
+    }
+};
+
+inline bool checkOBBOverlap(const OBB& a, const OBB& b) {
+    Vector2 aVerts[4];
+    Vector2 bVerts[4];
+    a.getVertices(aVerts);
+    b.getVertices(bVerts);
+    
+    // 4 axes from OBB A, 4 from OBB B (reduced to 4 unique axes because rectangles are parallel)
+    Vector2 axes[4] = {
+        Vector2(Fixed::cos(a.angle), Fixed::sin(a.angle)),
+        Vector2(-Fixed::sin(a.angle), Fixed::cos(a.angle)),
+        Vector2(Fixed::cos(b.angle), Fixed::sin(b.angle)),
+        Vector2(-Fixed::sin(b.angle), Fixed::cos(b.angle))
+    };
+    
+    for (int i = 0; i < 4; i++) {
+        Vector2 axis = axes[i];
+        
+        Fixed minA = Fixed(99999), maxA = Fixed(-99999);
+        for (int j = 0; j < 4; j++) {
+            Fixed proj = Vector2::dotProduct(aVerts[j], axis);
+            if (proj < minA) minA = proj;
+            if (proj > maxA) maxA = proj;
+        }
+        
+        Fixed minB = Fixed(99999), maxB = Fixed(-99999);
+        for (int j = 0; j < 4; j++) {
+            Fixed proj = Vector2::dotProduct(bVerts[j], axis);
+            if (proj < minB) minB = proj;
+            if (proj > maxB) maxB = proj;
+        }
+        
+        // If there's NO overlap on this axis, the OBBs don't intersect
+        if (maxA < minB || maxB < minA) {
+            return false; 
+        }
+    }
+    return true; // Overlap on all axes!
+}
+
 // Spatial Grid Broadphase
 class SpatialGrid {
 public:
