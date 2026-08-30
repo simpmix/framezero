@@ -79,3 +79,21 @@ int main() {
 We provide standalone tools in the `tools/` folder to help you debug your game:
 * **FrameZeroReplayViewer**: Renders and visualizes recorded `.frz` replay files.
 * **FrameZeroDesyncFinder**: Compares two replay files (e.g., from P1's PC and P2's PC) and pinpoints the exact frame where their simulations desynchronized.
+
+## 4. Testing Bad Connections (NetworkSimulator)
+Testing a rollback engine on `localhost` is dangerous because 0ms ping hides rollback bugs! 
+Use the newly added `NetworkSimulator` wrapper instead of raw UDP sockets to aggressively test your game locally:
+
+```cpp
+#include "network_simulator.h"
+
+// 100ms latency, 30ms jitter, 10% packet loss
+NetworkSimulator netSim(100, 30, 0.10f);
+netSim.bind(8080);
+
+// In your game loop:
+netSim.update(); // Dispatches delayed packets
+
+// Will hold the packet in a queue for 100ms before actually sending it!
+netSim.send("127.0.0.1", 8081, data, size); 
+```
