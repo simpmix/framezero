@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <raylib.h>
 #include <cstdint>
 #include "imgui.h"
@@ -10,8 +10,8 @@ namespace FrameZero {
 
 class EditorGUI {
 public:
-    bool showHitboxes = true;
-    bool showPhysicsBodies = true;
+    bool showHitboxes = false;
+    bool showPhysicsBodies = false;
     int selectedBodyId = -1;
 
     void initialize() {
@@ -78,7 +78,12 @@ public:
         // 1. Scene Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         if (ImGui::Begin("Scene Viewport")) {
-            rlImGuiImageRenderTexture(viewport);
+            ImVec2 avail = ImGui::GetContentRegionAvail();
+            if (avail.x > 0 && avail.y > 0) {
+                // Dynamically scale the game render texture to fit the panel perfectly!
+                Rectangle srcRect = { 0, 0, (float)viewport->texture.width, -(float)viewport->texture.height };
+                rlImGuiImageRect(&viewport->texture, (int)avail.x, (int)avail.y, srcRect);
+            }
         }
         ImGui::End();
         ImGui::PopStyleVar();

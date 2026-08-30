@@ -1,4 +1,4 @@
-﻿#include <raylib.h>
+#include <raylib.h>
 #include "rollback_netcode.h"
 #include "player_controller.h"
 #include "interpolation_renderer.h"
@@ -47,6 +47,9 @@ int main() {
     // Create a RenderTexture for the game viewport
     RenderTexture2D viewport = LoadRenderTexture(800, 600);
 
+    // Load the generated AI Character Sprite
+    Texture2D characterSprite = LoadTexture("character.jpg");
+
     // Fixed timestep logic
     double accumulator = 0.0;
     const double dt = 1.0 / 60.0;
@@ -91,11 +94,33 @@ int main() {
         // 1. Draw Game to Viewport Texture
         BeginTextureMode(viewport);
         ClearBackground(RAYWHITE);
+        
+        // Draw the Character Sprites at the physics body positions
+        for (int i = 0; i < renderCount; i++) {
+            float x = (float)renderStates[i].position.x.toDouble();
+            float y = (float)renderStates[i].position.y.toDouble();
+            float w = (float)renderStates[i].size.x.toDouble();
+            float h = (float)renderStates[i].size.y.toDouble();
+            
+            // FrameZero Physics (Y=0 is Floor). Raylib (Y=0 is Roof).
+            // Render Y is inverted inside the viewport
+            float screenY = 600.0f - y - h; 
+            
+            // Scale the character.jpg to perfectly fit the collision hitbox
+            Rectangle sourceRect = { 0.0f, 0.0f, (float)characterSprite.width, (float)characterSprite.height };
+            // Flip the sprite if it's Player 2 (facing left)
+            if (renderStates[i].id == 2) sourceRect.width *= -1.0f;
+            
+            Rectangle destRect = { x, screenY, w, h };
+            ::Vector2 origin = { 0.0f, 0.0f };
+            DrawTexturePro(characterSprite, sourceRect, destRect, origin, 0.0f, WHITE);
+        }
+
         PlayerController players[2] = { pc1, pc2 };
         if (editor.showPhysicsBodies || editor.showHitboxes) {
             DebugRenderer::Draw(renderStates, renderCount, players, 2);
         }
-        DrawText("Game Viewport", 10, 10, 20, DARKGRAY);
+        
         EndTextureMode();
 
         // 2. Draw Editor UI to Screen
