@@ -30,6 +30,8 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 
 ### 🎮 Fighting Game & Action Tools
 * **Motion Input Parser**: Track 60 frames of input history and instantly detect advanced joystick motions like Quarter-Circle Forward (QCF) or Dragon Punch (DP).
+* **Input Config Mapper**: Dynamically map Keyboard and XInput Gamepad bindings directly into the deterministic rollback struct. Supports overriding D-Pad with analog sticks seamlessly.
+* **Combat Math Engine**: Robust fighting game mathematics utility handling Combo Scaling (Proration), Crouching Hitstun bonuses, and dynamic Corner Pushback.
 * **Animator State Machine**: A Unity-style node-based animator component that manages complex transitions between states (Idle, Walk, Attack) based on conditional lambdas.
 * **Dynamic Camera Controller**: A fighting-game specific camera that automatically tracks the midpoint between players, dynamically zooms based on distance, and enforces hard stage boundaries deterministically.
 * **Behavior Tree AI**: Native C++ behavior trees (`BTSequence`, `BTSelector`) for deterministic enemy AI without the overhead of Lua scripting.

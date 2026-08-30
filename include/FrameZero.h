@@ -42,8 +42,10 @@
 
 // Game & Combat
 #include "frame_data.h"
+#include "combat_math.h"
 #include "combat_system.h"
 #include "player_controller.h"
+#include "input_mapper.h"
 
 // Rendering
 #include "interpolation_renderer.h"

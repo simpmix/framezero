@@ -6,6 +6,16 @@
 
 namespace FrameZero {
 
+// Standard Input Button Flags
+const uint8_t BTN_UP    = 1 << 0;
+const uint8_t BTN_DOWN  = 1 << 1;
+const uint8_t BTN_LEFT  = 1 << 2;
+const uint8_t BTN_RIGHT = 1 << 3;
+const uint8_t BTN_PUNCH = 1 << 4;
+const uint8_t BTN_KICK  = 1 << 5;
+const uint8_t BTN_BLOCK = 1 << 6;
+const uint8_t BTN_TAUNT = 1 << 7;
+
 // Compact 9-byte input structure for network efficiency
 struct Input {
     int8_t moveX;      // -127 to 127 (left/right)

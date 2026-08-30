@@ -81,8 +81,8 @@ public:
                 isAttacking = false;
             }
         } else {
-            // Check for new attack (assuming button 1 is attack)
-            if (input.buttons & (1 << 0)) {
+            // Check for new attack
+            if (input.buttons & BTN_PUNCH) {
                 isAttacking = true;
                 attackFrameTimer = 15; // Attack lasts 15 frames
                 attackHitbox.active = false;
