@@ -69,7 +69,7 @@ public:
             int lowestIdx = 0;
             for (size_t i = 1; i < openList.size(); i++) {
                 if (openList[i]->fCost() < openList[lowestIdx]->fCost()) {
-                    lowestIdx = i;
+                    lowestIdx = static_cast<int>(i);
                 }
             }
             

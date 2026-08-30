@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <iostream>
+#include <cctype>
 
 namespace FrameZero {
 
