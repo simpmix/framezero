@@ -48,7 +48,7 @@ int main() {
     RenderTexture2D viewport = LoadRenderTexture(800, 600);
 
     // Load the generated AI Character Sprite
-    Texture2D characterSprite = LoadTexture("character.jpg");
+    Texture2D characterSprite = LoadTexture("D:\\Anti\\framezero\\character.jpg");
 
     // Fixed timestep logic
     double accumulator = 0.0;
@@ -113,6 +113,10 @@ int main() {
             
             Rectangle destRect = { x, screenY, w, h };
             ::Vector2 origin = { 0.0f, 0.0f };
+            
+            // Debug fallback: Draw a bright red box behind the texture so we can see if it's a texture issue or a physics issue
+            DrawRectangleRec(destRect, RED);
+            
             DrawTexturePro(characterSprite, sourceRect, destRect, origin, 0.0f, WHITE);
         }
 
