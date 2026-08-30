@@ -1,4 +1,4 @@
-#define WIN32_LEAN_AND_MEAN
+﻿#define WIN32_LEAN_AND_MEAN
 #include "../include/web_server.h"
 #include "../src/vendor/httplib.h"
 #include "../include/player_controller.h"
@@ -39,5 +39,5 @@ void RunWebServer() {
     });
 
     std::cout << "Web Engine UI running at http://localhost:8080" << std::endl;
-    svr.listen("localhost", 8080);
+    svr.listen("0.0.0.0", 8080);
 }

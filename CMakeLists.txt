@@ -5,6 +5,8 @@ project(FrameZero VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Threads REQUIRED)
+
 # Fix CMake >= 4.0 policy errors for older dependencies (like Raylib 5.0)
 set(CMAKE_POLICY_VERSION_MINIMUM "3.5" CACHE STRING "Minimum CMake policy version" FORCE)
 
@@ -41,7 +43,7 @@ add_executable(FrameZeroDemo
     src/vendor/imgui/rlImGui.cpp
 )
 target_include_directories(FrameZeroDemo PRIVATE src/vendor/imgui)
-target_link_libraries(FrameZeroDemo PRIVATE framezero)
+target_link_libraries(FrameZeroDemo PRIVATE framezero Threads::Threads)
 
 # Tools
 add_subdirectory(tools)
@@ -57,7 +59,6 @@ install(TARGETS framezero
 install(DIRECTORY include/ DESTINATION include/framezero)
 
 # Link math and thread libraries on Linux/Unix if needed
-find_package(Threads REQUIRED)
 if(UNIX AND NOT APPLE)
     target_link_libraries(framezero PUBLIC m Threads::Threads)
     target_link_libraries(FrameZeroTests PRIVATE m Threads::Threads)
