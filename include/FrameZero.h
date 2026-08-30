@@ -17,6 +17,8 @@
 #include "random.h"
 #include "audio_system.h"
 #include "behavior_tree.h"
+#include "animation.h"
+#include "particles.h"
 
 // Rollback Netcode & Logic
 #include "input.h"
