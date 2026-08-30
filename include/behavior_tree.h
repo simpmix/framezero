@@ -31,7 +31,7 @@ public:
     }
     
     BTStatus tick(Registry& ecs, Entity entity) override {
-        while (currentChild < children.size()) {
+        while (currentChild < static_cast<int>(children.size())) {
             BTStatus status = children[currentChild]->tick(ecs, entity);
             if (status != BTStatus::SUCCESS) {
                 if (status == BTStatus::FAILURE) currentChild = 0; // Reset on failure
@@ -55,7 +55,7 @@ public:
     }
     
     BTStatus tick(Registry& ecs, Entity entity) override {
-        while (currentChild < children.size()) {
+        while (currentChild < static_cast<int>(children.size())) {
             BTStatus status = children[currentChild]->tick(ecs, entity);
             if (status != BTStatus::FAILURE) {
                 if (status == BTStatus::SUCCESS) currentChild = 0; // Reset on success

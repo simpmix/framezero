@@ -3,6 +3,7 @@
 
 #include "vector2.h"
 #include "input.h"
+#include <cstring>
 
 namespace FrameZero {
 
