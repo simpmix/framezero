@@ -45,15 +45,15 @@ public:
             Input in = getInputFramesAgo(i);
             
             // Step 1: Find Forward (6)
-            if (!foundForward && in.moveX > Fixed(0) && in.moveY == Fixed(0)) {
+            if (!foundForward && in.moveX > 0 && in.moveY == 0) {
                 foundForward = true;
             }
             // Step 2: Find Down-Forward (3) before Forward
-            else if (foundForward && !foundDownForward && in.moveX > Fixed(0) && in.moveY > Fixed(0)) {
+            else if (foundForward && !foundDownForward && in.moveX > 0 && in.moveY > 0) {
                 foundDownForward = true;
             }
             // Step 3: Find Down (2) before Down-Forward
-            else if (foundDownForward && in.moveX == Fixed(0) && in.moveY > Fixed(0)) {
+            else if (foundDownForward && in.moveX == 0 && in.moveY > 0) {
                 return true; // Motion complete!
             }
         }
@@ -68,13 +68,13 @@ public:
         for (int i = 0; i < windowFrames; i++) {
             Input in = getInputFramesAgo(i);
             
-            if (!foundDownForward && in.moveX > Fixed(0) && in.moveY > Fixed(0)) {
+            if (!foundDownForward && in.moveX > 0 && in.moveY > 0) {
                 foundDownForward = true;
             }
-            else if (foundDownForward && !foundDown && in.moveX == Fixed(0) && in.moveY > Fixed(0)) {
+            else if (foundDownForward && !foundDown && in.moveX == 0 && in.moveY > 0) {
                 foundDown = true;
             }
-            else if (foundDown && in.moveX > Fixed(0) && in.moveY == Fixed(0)) {
+            else if (foundDown && in.moveX > 0 && in.moveY == 0) {
                 return true;
             }
         }

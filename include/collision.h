@@ -55,14 +55,14 @@ inline bool checkOBBOverlap(const OBB& a, const OBB& b) {
         
         Fixed minA = Fixed(99999), maxA = Fixed(-99999);
         for (int j = 0; j < 4; j++) {
-            Fixed proj = Vector2::dotProduct(aVerts[j], axis);
+            Fixed proj = aVerts[j].dot(axis);
             if (proj < minA) minA = proj;
             if (proj > maxA) maxA = proj;
         }
         
         Fixed minB = Fixed(99999), maxB = Fixed(-99999);
         for (int j = 0; j < 4; j++) {
-            Fixed proj = Vector2::dotProduct(bVerts[j], axis);
+            Fixed proj = bVerts[j].dot(axis);
             if (proj < minB) minB = proj;
             if (proj > maxB) maxB = proj;
         }
@@ -102,6 +102,12 @@ public:
             cells[i] = nullptr;
         }
         nodeCount = 0;
+    }
+
+    // Check if a cell contains any bodies (useful for pathfinding obstacles)
+    bool hasBodiesInCell(int x, int y) const {
+        int cellIndex = hash(x, y);
+        return cells[cellIndex] != nullptr;
     }
 
     // Deterministic hash for spatial coordinates

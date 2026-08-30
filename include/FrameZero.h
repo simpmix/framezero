@@ -19,6 +19,7 @@
 #include "behavior_tree.h"
 #include "animation.h"
 #include "particles.h"
+#include "pathfinding.h"
 
 // Rollback Netcode & Logic
 #include "input.h"
