@@ -85,8 +85,8 @@ public:
         if (midpoint.x + viewWidthHalf > stageRight) midpoint.x = stageRight - viewWidthHalf;
 
         // Apply to camera
-        camera->setLogicPosition(midpoint);
-        camera->setLogicZoom(desiredZoom);
+        camera->logicPosition = midpoint;
+        camera->zoom = desiredZoom;
     }
 };
 
