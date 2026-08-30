@@ -103,14 +103,9 @@ int main() {
         ClearBackground(GetColor(0x222222FF)); // Dark editor background
         
         rlImGuiBegin();
-        
-        // Draw the main editor window that contains the game
-        editor.drawViewportWindow(&viewport);
-        
-        // Draw the hierarchy and inspector
-        editor.draw(&engine, players, 2);
-        
+        editor.draw(&engine, players, 2, &viewport);
         rlImGuiEnd();
+        
         EndDrawing();
     }
 

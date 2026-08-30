@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <raylib.h>
 #include <cstdint>
 #include "imgui.h"
@@ -17,25 +17,22 @@ public:
     void initialize() {
         ImGuiStyle& style = ImGui::GetStyle();
         
-        // Polished rounded corners
-        style.WindowRounding = 8.0f;
-        style.FrameRounding = 6.0f;
-        style.PopupRounding = 6.0f;
-        style.ScrollbarRounding = 6.0f;
-        style.GrabRounding = 6.0f;
-        style.TabRounding = 6.0f;
+        style.WindowRounding = 0.0f;
+        style.FrameRounding = 4.0f;
+        style.PopupRounding = 4.0f;
+        style.ScrollbarRounding = 4.0f;
+        style.GrabRounding = 4.0f;
+        style.TabRounding = 4.0f;
 
-        // Spacing tweaks
-        style.WindowPadding = ImVec2(12, 12);
-        style.FramePadding = ImVec2(8, 4);
+        style.WindowPadding = ImVec2(8, 8);
+        style.FramePadding = ImVec2(6, 4);
         style.ItemSpacing = ImVec2(8, 6);
 
-        // Advanced Dark Engine Theme Colors (Unreal-style)
         ImVec4* colors = style.Colors;
         colors[ImGuiCol_Text]                   = ImVec4(0.95f, 0.95f, 0.95f, 1.00f);
-        colors[ImGuiCol_WindowBg]               = ImVec4(0.12f, 0.12f, 0.12f, 0.94f);
+        colors[ImGuiCol_WindowBg]               = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
         colors[ImGuiCol_TitleBg]                = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
-        colors[ImGuiCol_TitleBgActive]          = ImVec4(0.15f, 0.35f, 0.65f, 1.00f); // High-tech blue
+        colors[ImGuiCol_TitleBgActive]          = ImVec4(0.15f, 0.35f, 0.65f, 1.00f);
         colors[ImGuiCol_FrameBg]                = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
         colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.25f, 0.45f, 0.85f, 0.70f);
         colors[ImGuiCol_FrameBgActive]          = ImVec4(0.20f, 0.40f, 0.80f, 1.00f);
@@ -49,28 +46,45 @@ public:
         colors[ImGuiCol_HeaderHovered]          = ImVec4(0.30f, 0.50f, 0.90f, 1.00f);
         colors[ImGuiCol_HeaderActive]           = ImVec4(0.20f, 0.40f, 0.80f, 1.00f);
         colors[ImGuiCol_Separator]              = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+        
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
     }
 
-    void drawViewportWindow(RenderTexture2D* viewport) {
-        ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(820.0f, 640.0f), ImGuiCond_FirstUseEver);
+    void draw(RollbackEngine* engine, PlayerController* players, int playerCount, RenderTexture2D* viewport) {
+        if (!engine) return;
+
+        // Create Fullscreen DockSpace
+        ImGuiViewport* imguiViewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(imguiViewport->WorkPos);
+        ImGui::SetNextWindowSize(imguiViewport->WorkSize);
+        ImGui::SetNextWindowViewport(imguiViewport->ID);
         
-        // Remove window padding for the viewport so the game fills the window
+        ImGuiWindowFlags dockFlags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | 
+                                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | 
+                                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | 
+                                     ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
+        
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        
+        ImGui::Begin("DockSpace", nullptr, dockFlags);
+        ImGui::PopStyleVar(3);
+        
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+        // 1. Scene Viewport
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-        if (ImGui::Begin("Scene Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
-            // Draw the Raylib RenderTexture directly into ImGui!
+        if (ImGui::Begin("Scene Viewport")) {
             rlImGuiImageRenderTexture(viewport);
         }
         ImGui::End();
         ImGui::PopStyleVar();
-    }
 
-    void draw(RollbackEngine* engine, PlayerController* players, int playerCount) {
-        if (!engine) return;
-
-        // Overlay performance metrics
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("FrameZero Debug Profiler", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        // 2. Profiler
+        if (ImGui::Begin("FrameZero Debug Profiler")) {
             ImGui::Text("FPS: %d", GetFPS());
             ImGui::Text("Current Frame: %d", engine->getCurrentFrame());
             ImGui::Text("Confirmed Frame: %d", engine->getConfirmedFrame());
@@ -81,15 +95,14 @@ public:
         }
         ImGui::End();
 
-        // Hierarchy and Inspector
-        ImGui::SetNextWindowPos(ImVec2(GetScreenWidth() - 310.0f, 10.0f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
+        // 3. Hierarchy & Inspector
         if (ImGui::Begin("Hierarchy & Inspector")) {
             ImGui::Text("Physics Bodies:");
             for (int i = 0; i < engine->bodyCount; i++) {
                 PhysicsBody& b = engine->bodies[i];
                 char label[64];
-                sprintf(label, "Body %u (Active: %s)", b.id, b.active ? "True" : "False");
+                // using sprintf safe alternative for gcc
+                snprintf(label, sizeof(label), "Body %u (Active: %s)", b.id, b.active ? "True" : "False");
                 if (ImGui::Selectable(label, selectedBodyId == (int)b.id)) {
                     selectedBodyId = (int)b.id;
                 }
@@ -97,7 +110,6 @@ public:
 
             ImGui::Separator();
             if (selectedBodyId != -1) {
-                // Find selected body
                 PhysicsBody* selected = nullptr;
                 for (int i = 0; i < engine->bodyCount; i++) {
                     if (engine->bodies[i].id == (uint32_t)selectedBodyId) {
@@ -109,7 +121,6 @@ public:
                 if (selected) {
                     ImGui::Text("Inspector - Body %u", selected->id);
                     
-                    // Position editing
                     double px = selected->position.x.toDouble();
                     double py = selected->position.y.toDouble();
                     float pos[2] = { (float)px, (float)py };
@@ -118,7 +129,6 @@ public:
                         selected->position.y = Fixed(pos[1]);
                     }
 
-                    // Size editing
                     double sx = selected->size.x.toDouble();
                     double sy = selected->size.y.toDouble();
                     float size[2] = { (float)sx, (float)sy };
@@ -127,38 +137,28 @@ public:
                         selected->size.y = Fixed(size[1]);
                     }
 
-                    // Physics properties
                     double m = selected->mass.toDouble();
                     float mass = (float)m;
                     if (ImGui::DragFloat("Mass", &mass, 0.1f, 0.0f, 100.0f)) {
                         selected->setMass(Fixed(mass));
-                    }
-                    
-                    double res = selected->restitution.toDouble();
-                    float r = (float)res;
-                    if (ImGui::SliderFloat("Restitution", &r, 0.0f, 1.0f)) {
-                        selected->restitution = Fixed(r);
                     }
                 }
             }
         }
         ImGui::End();
 
-        // Frame Data / Character Tuner
-        ImGui::SetNextWindowPos(ImVec2(10, 200), ImGuiCond_FirstUseEver);
+        // 4. Frame Data Tuning
         if (ImGui::Begin("Frame Data Tuning")) {
             for (int i = 0; i < playerCount; i++) {
                 if (ImGui::TreeNode((void*)(intptr_t)i, "Player %d", i + 1)) {
                     PlayerController& p = players[i];
                     
-                    // Movement tuning
                     float wSpeed = (float)p.walkSpeed.toDouble();
                     if (ImGui::DragFloat("Walk Speed", &wSpeed, 0.5f)) p.walkSpeed = Fixed(wSpeed);
                     
                     float jForce = (float)p.jumpForce.toDouble();
                     if (ImGui::DragFloat("Jump Force", &jForce, 5.0f)) p.jumpForce = Fixed(jForce);
                     
-                    // Combat tuning
                     ImGui::Text("Attack Hitbox:");
                     float dmg = (float)p.attackHitbox.damage.toDouble();
                     if (ImGui::DragFloat("Damage", &dmg, 1.0f)) p.attackHitbox.damage = Fixed(dmg);
@@ -176,6 +176,8 @@ public:
             }
         }
         ImGui::End();
+        
+        ImGui::End(); // End DockSpace
     }
 };
 
