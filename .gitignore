@@ -1,0 +1,25 @@
+# Build and compile directories
+build/
+bin/
+out/
+.vs/
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+*.ilk
+
+# Replay and Data files
+*.frz
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# OS generated files
+.DS_Store
+Thumbs.db
