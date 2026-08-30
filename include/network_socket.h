@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <netinet/in.h>
 typedef int SOCKET;
 const int INVALID_SOCKET = -1;
 const int SOCKET_ERROR = -1;

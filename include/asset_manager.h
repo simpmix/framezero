@@ -20,7 +20,7 @@ private:
         // Convert Windows backslashes to forward slashes for cross-platform safety
         std::replace(path.begin(), path.end(), '\\', '/');
         // Convert to lowercase to avoid case-sensitivity issues on Linux (ext4) vs Windows (NTFS)
-        std::transform(path.begin(), path.end(), path.begin(), ::tolower);
+        std::transform(path.begin(), path.end(), path.begin(), [](unsigned char c){ return std::tolower(c); });
         return path;
     }
 

@@ -49,9 +49,10 @@ install(TARGETS framezero
 install(DIRECTORY include/ DESTINATION include/framezero)
 
 # Link math and thread libraries on Linux/Unix if needed
+find_package(Threads REQUIRED)
 if(UNIX AND NOT APPLE)
-    target_link_libraries(framezero PUBLIC m pthread)
-    target_link_libraries(FrameZeroTests PRIVATE m pthread)
+    target_link_libraries(framezero PUBLIC m Threads::Threads)
+    target_link_libraries(FrameZeroTests PRIVATE m Threads::Threads)
 endif()
 
 # Custom Target to run tests
