@@ -32,8 +32,8 @@ public:
 
     PlayerController() 
         : body(nullptr),
-          walkSpeed(Fixed(20.0)),
-          jumpForce(Fixed(300.0)),
+          walkSpeed(Fixed(5.0)),
+          jumpForce(Fixed(10.0)),
           groundFriction(Fixed(0.8)),
           airFriction(Fixed(0.98)),
           attackHitbox(Vector2(Fixed(2.0), Fixed(0)), Vector2(Fixed(1.0), Fixed(1.0)), Fixed(10.0), 5), // Hitstop of 5 frames

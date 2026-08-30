@@ -4,8 +4,9 @@
 #include "interpolation_renderer.h"
 #include "renderer.h"
 #include "input.h"
-
 #include "editor_gui.h"
+#include "web_server.h"
+#include <thread>
 
 using namespace FrameZero;
 
@@ -42,6 +43,10 @@ int main() {
     PlayerController pc1, pc2;
     pc1.bind(&engine.bodies[0]);
     pc2.bind(&engine.bodies[1]);
+    
+    g_p1 = &pc1;
+    std::thread webThread(RunWebServer);
+    webThread.detach();
 
     InterpolationRenderer renderer;
     

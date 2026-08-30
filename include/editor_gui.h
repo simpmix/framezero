@@ -1,5 +1,6 @@
 #pragma once
 #include <raylib.h>
+#include <cstdint>
 #include "imgui.h"
 #include "rlImGui.h"
 #include "rollback_netcode.h"

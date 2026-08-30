@@ -33,6 +33,7 @@ target_link_libraries(FrameZeroTests PRIVATE framezero)
 # Demo executable
 add_executable(FrameZeroDemo 
     src/main.cpp
+    src/web_server.cpp
     src/vendor/imgui/imgui.cpp
     src/vendor/imgui/imgui_draw.cpp
     src/vendor/imgui/imgui_tables.cpp
