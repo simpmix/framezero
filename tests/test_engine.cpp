@@ -365,7 +365,7 @@ void test_player_controller() {
     Input input;
     input.moveX = 127; // Max right
     input.moveY = 0;
-    input.buttons = 1; // Attack
+    input.buttons = BTN_PUNCH; // Attack
     
     player.update(input);
     
@@ -414,7 +414,7 @@ void test_combat_hitstop() {
     
     // Simulate attack
     Input attackInput;
-    attackInput.buttons = 1; // trigger attack
+    attackInput.buttons = BTN_PUNCH; // trigger attack
     attackInput.moveX = 0; attackInput.moveY = 0;
     
     Input idleInput; idleInput.buttons = 0; idleInput.moveX = 0; idleInput.moveY = 0;
