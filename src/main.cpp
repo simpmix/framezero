@@ -21,6 +21,7 @@ int main() {
 
     RollbackEngine engine;
     EditorGUI editor;
+    editor.initialize();
     
     // Initialize 2 bodies
     PhysicsBody initialBodies[2];

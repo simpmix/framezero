@@ -13,6 +13,43 @@ public:
     bool showPhysicsBodies = true;
     int selectedBodyId = -1;
 
+    void initialize() {
+        ImGuiStyle& style = ImGui::GetStyle();
+        
+        // Polished rounded corners
+        style.WindowRounding = 8.0f;
+        style.FrameRounding = 6.0f;
+        style.PopupRounding = 6.0f;
+        style.ScrollbarRounding = 6.0f;
+        style.GrabRounding = 6.0f;
+        style.TabRounding = 6.0f;
+
+        // Spacing tweaks
+        style.WindowPadding = ImVec2(12, 12);
+        style.FramePadding = ImVec2(8, 4);
+        style.ItemSpacing = ImVec2(8, 6);
+
+        // Advanced Dark Engine Theme Colors (Unreal-style)
+        ImVec4* colors = style.Colors;
+        colors[ImGuiCol_Text]                   = ImVec4(0.95f, 0.95f, 0.95f, 1.00f);
+        colors[ImGuiCol_WindowBg]               = ImVec4(0.12f, 0.12f, 0.12f, 0.94f);
+        colors[ImGuiCol_TitleBg]                = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+        colors[ImGuiCol_TitleBgActive]          = ImVec4(0.15f, 0.35f, 0.65f, 1.00f); // High-tech blue
+        colors[ImGuiCol_FrameBg]                = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+        colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.25f, 0.45f, 0.85f, 0.70f);
+        colors[ImGuiCol_FrameBgActive]          = ImVec4(0.20f, 0.40f, 0.80f, 1.00f);
+        colors[ImGuiCol_CheckMark]              = ImVec4(0.40f, 0.70f, 1.00f, 1.00f);
+        colors[ImGuiCol_SliderGrab]             = ImVec4(0.35f, 0.55f, 0.95f, 1.00f);
+        colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.45f, 0.65f, 1.00f, 1.00f);
+        colors[ImGuiCol_Button]                 = ImVec4(0.20f, 0.35f, 0.65f, 1.00f);
+        colors[ImGuiCol_ButtonHovered]          = ImVec4(0.25f, 0.45f, 0.85f, 1.00f);
+        colors[ImGuiCol_ButtonActive]           = ImVec4(0.15f, 0.30f, 0.55f, 1.00f);
+        colors[ImGuiCol_Header]                 = ImVec4(0.25f, 0.45f, 0.85f, 0.80f);
+        colors[ImGuiCol_HeaderHovered]          = ImVec4(0.30f, 0.50f, 0.90f, 1.00f);
+        colors[ImGuiCol_HeaderActive]           = ImVec4(0.20f, 0.40f, 0.80f, 1.00f);
+        colors[ImGuiCol_Separator]              = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+    }
+
     void draw(RollbackEngine* engine, PlayerController* players, int playerCount) {
         if (!engine) return;
 
