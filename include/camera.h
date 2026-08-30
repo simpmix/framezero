@@ -31,20 +31,20 @@ public:
     // towards the logic position, hiding rollback jitter from the player.
     void updateRender(float renderDeltaTime) {
         // Convert Fixed to float for rendering
-        float lx = static_cast<float>(logicPosition.x);
-        float ly = static_cast<float>(logicPosition.y);
-        float rx = static_cast<float>(renderPosition.x);
-        float ry = static_cast<float>(renderPosition.y);
+        float lx = static_cast<float>(logicPosition.x.toDouble());
+        float ly = static_cast<float>(logicPosition.y.toDouble());
+        float rx = static_cast<float>(renderPosition.x.toDouble());
+        float ry = static_cast<float>(renderPosition.y.toDouble());
         
         // Framerate-independent spring smoothing
-        float speed = static_cast<float>(smoothingSpeed) * 60.0f * renderDeltaTime;
+        float speed = static_cast<float>(smoothingSpeed.toDouble()) * 60.0f * renderDeltaTime;
         if (speed > 1.0f) speed = 1.0f;
         
         rx += (lx - rx) * speed;
         ry += (ly - ry) * speed;
         
-        renderPosition.x = Fixed(rx);
-        renderPosition.y = Fixed(ry);
+        renderPosition.x = Fixed(static_cast<double>(rx));
+        renderPosition.y = Fixed(static_cast<double>(ry));
     }
 };
 
