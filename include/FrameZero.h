@@ -24,6 +24,8 @@
 #include "thread_pool.h"
 #include "asset_manager.h"
 #include "scene_manager.h"
+#include "event_system.h"
+#include "config_parser.h"
 
 // Rollback Netcode & Logic
 #include "input.h"

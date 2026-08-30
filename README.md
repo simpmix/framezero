@@ -37,6 +37,8 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 * **Cross-OS Thread Pool**: Offload heavy AI or Audio tasks to a C++11 `<thread>` pool without stalling the 60FPS main loop.
 * **Smart Asset Manager**: Automatically normalizes file paths (`\` vs `/`) and lowercase rules to prevent "works on my machine" crashes between Windows and Linux.
 * **Stack-Based Scene Manager**: Push and Pop game states seamlessly (Menu -> Game -> Pause).
+* **Decoupled Event Bus**: A robust Message Bus for broadcasting game events (e.g. `PlayerHitEvent`) to the Audio and UI systems without spaghetti dependencies.
+* **Config/INI Parser**: Native cross-platform loading and saving of user configuration files (resolution, keybinds, volume).
 
 ---
 
