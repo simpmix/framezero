@@ -5,43 +5,41 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <utility>
 
 namespace FrameZero {
-
-// A Node-Based Animator State Machine.
-// Transitions between Animations deterministically based on conditions.
-// Equivalent to Unity's Animator controller but strictly tied to Rollback logic frames.
 
 struct AnimTransition {
     std::string targetState;
     std::function<bool()> condition; // Returns true if we should transition
 };
 
-class AnimatorState {
+class StateMachineNode {
 public:
-    Animation animation;
+    int sequenceId;
     std::vector<AnimTransition> transitions;
     bool loop;
 
-    AnimatorState(const Animation& anim, bool shouldLoop = true) 
-        : animation(anim), loop(shouldLoop) {}
+    StateMachineNode(int seqId, bool shouldLoop = true) 
+        : sequenceId(seqId), loop(shouldLoop) {}
 
     void addTransition(const std::string& target, std::function<bool()> condition) {
-        transitions.push_back({target, std::move(condition)});
+        transitions.push_back(AnimTransition{target, std::move(condition)});
     }
 };
 
-class Animator {
+class AnimatorStateMachine {
 private:
-    std::unordered_map<std::string, std::unique_ptr<AnimatorState>> states;
+    std::unordered_map<std::string, std::unique_ptr<StateMachineNode>> states;
     std::string currentStateName;
-    AnimatorState* currentState;
+    StateMachineNode* currentNode;
+    FrameZero::AnimatorState coreState; // From animation.h
 
 public:
-    Animator() : currentState(nullptr) {}
+    AnimatorStateMachine() : currentNode(nullptr) {}
 
-    void addState(const std::string& name, const Animation& anim, bool loop = true) {
-        states[name] = std::make_unique<AnimatorState>(anim, loop);
+    void addState(const std::string& name, int sequenceId, bool loop = true) {
+        states[name] = std::make_unique<StateMachineNode>(sequenceId, loop);
     }
 
     void addTransition(const std::string& from, const std::string& to, std::function<bool()> condition) {
@@ -54,18 +52,18 @@ public:
         if (states.find(name) != states.end()) {
             if (currentStateName != name) {
                 currentStateName = name;
-                currentState = states[name].get();
-                currentState->animation.reset();
+                currentNode = states[name].get();
+                coreState.play(currentNode->sequenceId);
             }
         }
     }
 
-    // Called every LOGIC FRAME (not render frame)
-    void tick() {
-        if (!currentState) return;
+    // Called every LOGIC FRAME
+    void tick(const AnimationSequence* allSequences, int sequenceCount) {
+        if (!currentNode) return;
 
         // 1. Check Transitions
-        for (const auto& trans : currentState->transitions) {
+        for (const auto& trans : currentNode->transitions) {
             if (trans.condition()) {
                 play(trans.targetState);
                 break;
@@ -73,21 +71,23 @@ public:
         }
 
         // 2. Advance Animation
-        currentState->animation.tick();
-        if (currentState->animation.isFinished() && currentState->loop) {
-            currentState->animation.reset();
+        coreState.tick(allSequences, sequenceCount);
+        if (coreState.finished && currentNode->loop) {
+            coreState.play(currentNode->sequenceId); // loop back manually if animator overrides
         }
     }
 
-    // Retrieves the current frame index to be used by the Renderer
     int getCurrentFrame() const {
-        if (!currentState) return 0;
-        return currentState->animation.getCurrentFrame();
+        return coreState.currentFrameIndex;
     }
 
     std::string getCurrentState() const {
         return currentStateName;
     }
+    
+    // For rollback serialization
+    const FrameZero::AnimatorState& getCoreState() const { return coreState; }
+    void setCoreState(const FrameZero::AnimatorState& state) { coreState = state; }
 };
 
 } // namespace FrameZero

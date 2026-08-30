@@ -1,6 +1,7 @@
 #pragma once
 #include "fixed_point.h"
 #include <cstdint>
+#include <cstddef>
 
 namespace FrameZero {
 
