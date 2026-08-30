@@ -1,150 +1,161 @@
 #pragma once
+#include "fixed_point.h"
+#include "vector2.h"
 #include "collision.h"
-#include <vector>
-#include <queue>
 
 namespace FrameZero {
 
-struct PathNode {
-    int gridX, gridY;
-    Fixed gCost;
-    Fixed hCost;
-    PathNode* parent;
-    
-    Fixed fCost() const { return gCost + hCost; }
-    
-    bool operator>(const PathNode& other) const {
-        return fCost() > other.fCost();
-    }
-};
+// Fixed-size deterministic A* Pathfinding system (Zero allocations)
+class Pathfinder {
+public:
+    static constexpr int MAX_NODES = 1024;
+    static constexpr int MAX_PATH_LENGTH = 128;
 
-// Deterministic A* Pathfinding for Rollback
-class Pathfinding {
+    struct Node {
+        Vector2 position;
+        int gridX;
+        int gridY;
+        Fixed gCost; // Distance from start
+        Fixed hCost; // Distance to target
+        Fixed fCost; // Total cost
+        int parentIndex;
+        bool isObstacle;
+        bool closed;
+        bool open;
+        
+        Fixed getFCost() const { return gCost + hCost; }
+    };
+
 private:
-    static constexpr int MAX_NODES = 256;
-    PathNode nodePool[MAX_NODES];
-    int poolCount = 0;
-    
-    PathNode* allocNode(int x, int y, Fixed g, Fixed h, PathNode* parent) {
-        if (poolCount >= MAX_NODES) return nullptr;
-        PathNode* node = &nodePool[poolCount++];
-        node->gridX = x;
-        node->gridY = y;
-        node->gCost = g;
-        node->hCost = h;
-        node->parent = parent;
-        return node;
+    Node nodes[MAX_NODES];
+    int gridWidth;
+    int gridHeight;
+    Fixed cellSize;
+
+    int getIndex(int x, int y) const {
+        return y * gridWidth + x;
     }
 
-    Fixed heuristic(int x1, int y1, int x2, int y2) {
-        // Manhattan distance in fixed point
-        int dx = (x1 > x2) ? (x1 - x2) : (x2 - x1);
-        int dy = (y1 > y2) ? (y1 - y2) : (y2 - y1);
-        return Fixed(dx + dy);
+    Fixed calculateDistance(const Node& a, const Node& b) const {
+        Fixed dx = a.gridX - b.gridX;
+        Fixed dy = a.gridY - b.gridY;
+        // Manhattan distance for extreme speed and determinism
+        return dx.abs() + dy.abs();
     }
 
 public:
-    // Finds a deterministic path across the Spatial Grid. 
-    // Uses no heap allocations at runtime (pool based).
-    bool findPath(const SpatialGrid& grid, Vector2 startWorld, Vector2 targetWorld, std::vector<Vector2>& outPath) {
-        poolCount = 0;
-        outPath.clear();
+    Pathfinder(int width, int height, Fixed cellSz) : gridWidth(width), gridHeight(height), cellSize(cellSz) {
+        // Initialize grid
+        for (int y = 0; y < gridHeight; y++) {
+            for (int x = 0; x < gridWidth; x++) {
+                int idx = getIndex(x, y);
+                nodes[idx].gridX = x;
+                nodes[idx].gridY = y;
+                nodes[idx].position = Vector2(Fixed(x) * cellSize, Fixed(y) * cellSize);
+                nodes[idx].isObstacle = false;
+            }
+        }
+    }
+
+    void setObstacle(int x, int y, bool isObstacle) {
+        if (x >= 0 && x < gridWidth && y >= 0 && y < gridHeight) {
+            nodes[getIndex(x, y)].isObstacle = isObstacle;
+        }
+    }
+
+    // Returns the number of points in the path. Populates outPath array.
+    int findPath(int startX, int startY, int targetX, int targetY, Vector2* outPath, int maxPathSize) {
+        if (startX < 0 || startX >= gridWidth || startY < 0 || startY >= gridHeight ||
+            targetX < 0 || targetX >= gridWidth || targetY < 0 || targetY >= gridHeight) {
+            return 0; // Out of bounds
+        }
+
+        // Reset state
+        for (int i = 0; i < gridWidth * gridHeight; i++) {
+            nodes[i].gCost = Fixed(0);
+            nodes[i].hCost = Fixed(0);
+            nodes[i].fCost = Fixed(0);
+            nodes[i].parentIndex = -1;
+            nodes[i].closed = false;
+            nodes[i].open = false;
+        }
+
+        int startIdx = getIndex(startX, startY);
+        int targetIdx = getIndex(targetX, targetY);
         
-        int startX = (startWorld.x / grid.cellSize).toInt();
-        int startY = (startWorld.y / grid.cellSize).toInt();
-        int targetX = (targetWorld.x / grid.cellSize).toInt();
-        int targetY = (targetWorld.y / grid.cellSize).toInt();
-        
-        // Custom simple priority queue using fixed array to stay perfectly deterministic and zero-allocation
-        PathNode* openList[MAX_NODES];
-        int openListCount = 0;
-        
-        bool closedList[64][64] = {false}; // Assume a localized 64x64 search area for safety
-        
-        PathNode* startNode = allocNode(startX, startY, Fixed(0), heuristic(startX, startY, targetX, targetY), nullptr);
-        if(!startNode) return false;
-        
-        openList[openListCount++] = startNode;
-        
-        while (openListCount > 0) {
-            // Find lowest fCost deterministically
-            int lowestIdx = 0;
-            for (int i = 1; i < openListCount; i++) {
-                if (openList[i]->fCost() < openList[lowestIdx]->fCost()) {
-                    lowestIdx = i;
+        nodes[startIdx].open = true;
+
+        int openCount = 1;
+
+        while (openCount > 0) {
+            // Find node with lowest fCost
+            int currentIdx = -1;
+            Fixed lowestFCost = Fixed(999999);
+            
+            for (int i = 0; i < gridWidth * gridHeight; i++) {
+                if (nodes[i].open && nodes[i].getFCost() < lowestFCost) {
+                    lowestFCost = nodes[i].getFCost();
+                    currentIdx = i;
                 }
             }
-            
-            PathNode* current = openList[lowestIdx];
-            
-            // Erase from openList
-            for (int j = lowestIdx; j < openListCount - 1; j++) {
-                openList[j] = openList[j + 1];
-            }
-            openListCount--;
-            
-            // Reached target
-            if (current->gridX == targetX && current->gridY == targetY) {
-                PathNode* trace = current;
-                while (trace != nullptr) {
-                    outPath.push_back(Vector2(Fixed(trace->gridX) * grid.cellSize, Fixed(trace->gridY) * grid.cellSize));
-                    trace = trace->parent;
+
+            if (currentIdx == -1) break; // Should never happen
+            if (currentIdx == targetIdx) {
+                // Path found!
+                int pathSize = 0;
+                int traceIdx = targetIdx;
+                
+                // Backtrace
+                int tempPath[MAX_PATH_LENGTH];
+                while (traceIdx != startIdx && pathSize < MAX_PATH_LENGTH) {
+                    tempPath[pathSize++] = traceIdx;
+                    traceIdx = nodes[traceIdx].parentIndex;
                 }
-                // Reverse to start -> end
-                for (size_t i = 0; i < outPath.size() / 2; i++) {
-                    Vector2 temp = outPath[i];
-                    outPath[i] = outPath[outPath.size() - 1 - i];
-                    outPath[outPath.size() - 1 - i] = temp;
+                
+                // Reverse and output
+                int outSize = (pathSize < maxPathSize) ? pathSize : maxPathSize;
+                for (int i = 0; i < outSize; i++) {
+                    outPath[i] = nodes[tempPath[pathSize - 1 - i]].position;
                 }
-                return true;
+                return outSize;
             }
+
+            nodes[currentIdx].open = false;
+            nodes[currentIdx].closed = true;
+            openCount--;
+
+            // Check neighbors
+            int cx = nodes[currentIdx].gridX;
+            int cy = nodes[currentIdx].gridY;
             
-            // Map grid coordinates to safe bounds for closed list
-            int localX = current->gridX % 64;
-            int localY = current->gridY % 64;
-            if (localX < 0) localX += 64;
-            if (localY < 0) localY += 64;
+            int neighbors[4][2] = { {0, 1}, {1, 0}, {0, -1}, {-1, 0} };
             
-            closedList[localX][localY] = true;
-            
-            // Check 4 neighbors
-            int neighbors[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
             for (int i = 0; i < 4; i++) {
-                int nx = current->gridX + neighbors[i][0];
-                int ny = current->gridY + neighbors[i][1];
+                int nx = cx + neighbors[i][0];
+                int ny = cy + neighbors[i][1];
                 
-                int nlX = nx % 64; int nlY = ny % 64;
-                if (nlX < 0) nlX += 64; if (nlY < 0) nlY += 64;
-                
-                if (closedList[nlX][nlY]) continue;
-                
-                // If a body exists in this cell, treat it as a wall!
-                if (grid.hasBodiesInCell(nx, ny)) continue;
-                
-                Fixed gCost = current->gCost + Fixed(1);
-                Fixed hCost = heuristic(nx, ny, targetX, targetY);
-                
-                // Check if already in open list with better cost
-                bool inOpenList = false;
-                for (int j = 0; j < openListCount; j++) {
-                    PathNode* node = openList[j];
-                    if (node->gridX == nx && node->gridY == ny) {
-                        inOpenList = true;
-                        if (gCost < node->gCost) {
-                            node->gCost = gCost;
-                            node->parent = current;
+                if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
+                    int nIdx = getIndex(nx, ny);
+                    
+                    if (nodes[nIdx].isObstacle || nodes[nIdx].closed) continue;
+                    
+                    Fixed moveCost = nodes[currentIdx].gCost + Fixed(1); // 1 grid unit
+                    
+                    if (moveCost < nodes[nIdx].gCost || !nodes[nIdx].open) {
+                        nodes[nIdx].gCost = moveCost;
+                        nodes[nIdx].hCost = calculateDistance(nodes[nIdx], nodes[targetIdx]);
+                        nodes[nIdx].parentIndex = currentIdx;
+                        
+                        if (!nodes[nIdx].open) {
+                            nodes[nIdx].open = true;
+                            openCount++;
                         }
-                        break;
                     }
-                }
-                
-                if (!inOpenList && openListCount < MAX_NODES) {
-                    PathNode* neighborNode = allocNode(nx, ny, gCost, hCost, current);
-                    if (neighborNode) openList[openListCount++] = neighborNode;
                 }
             }
         }
-        return false;
+        
+        return 0; // No path found
     }
 };
 
