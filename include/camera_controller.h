@@ -1,7 +1,6 @@
 #pragma once
 #include "camera.h"
 #include "physics_body.h"
-#include <vector>
 
 namespace FrameZero {
 
@@ -46,8 +45,8 @@ public:
     }
 
     // Updates the camera logic position deterministically based on targets
-    void update(const std::vector<PhysicsBody*>& targets) {
-        if (targets.empty() || !camera) return;
+    void update(PhysicsBody** targets, int count) {
+        if (count == 0 || !camera) return;
 
         // 1. Find bounding box of all target players
         Fixed minX = targets[0]->position.x;
@@ -55,7 +54,7 @@ public:
         Fixed minY = targets[0]->position.y;
         Fixed maxY = targets[0]->position.y;
 
-        for (size_t i = 1; i < targets.size(); i++) {
+        for (int i = 1; i < count; i++) {
             if (targets[i]->position.x < minX) minX = targets[i]->position.x;
             if (targets[i]->position.x > maxX) maxX = targets[i]->position.x;
             if (targets[i]->position.y < minY) minY = targets[i]->position.y;

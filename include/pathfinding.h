@@ -55,26 +55,33 @@ public:
         int targetX = (targetWorld.x / grid.cellSize).toInt();
         int targetY = (targetWorld.y / grid.cellSize).toInt();
         
-        // Custom simple priority queue using vector to stay perfectly deterministic
-        std::vector<PathNode*> openList;
+        // Custom simple priority queue using fixed array to stay perfectly deterministic and zero-allocation
+        PathNode* openList[MAX_NODES];
+        int openListCount = 0;
+        
         bool closedList[64][64] = {false}; // Assume a localized 64x64 search area for safety
         
         PathNode* startNode = allocNode(startX, startY, Fixed(0), heuristic(startX, startY, targetX, targetY), nullptr);
         if(!startNode) return false;
         
-        openList.push_back(startNode);
+        openList[openListCount++] = startNode;
         
-        while (!openList.empty()) {
-            // Find lowest fCost deterministically (no std::priority_queue which might swap identically-weighted items differently)
+        while (openListCount > 0) {
+            // Find lowest fCost deterministically
             int lowestIdx = 0;
-            for (size_t i = 1; i < openList.size(); i++) {
+            for (int i = 1; i < openListCount; i++) {
                 if (openList[i]->fCost() < openList[lowestIdx]->fCost()) {
-                    lowestIdx = static_cast<int>(i);
+                    lowestIdx = i;
                 }
             }
             
             PathNode* current = openList[lowestIdx];
-            openList.erase(openList.begin() + lowestIdx);
+            
+            // Erase from openList
+            for (int j = lowestIdx; j < openListCount - 1; j++) {
+                openList[j] = openList[j + 1];
+            }
+            openListCount--;
             
             // Reached target
             if (current->gridX == targetX && current->gridY == targetY) {
@@ -119,7 +126,8 @@ public:
                 
                 // Check if already in open list with better cost
                 bool inOpenList = false;
-                for (auto* node : openList) {
+                for (int j = 0; j < openListCount; j++) {
+                    PathNode* node = openList[j];
                     if (node->gridX == nx && node->gridY == ny) {
                         inOpenList = true;
                         if (gCost < node->gCost) {
@@ -130,9 +138,9 @@ public:
                     }
                 }
                 
-                if (!inOpenList) {
+                if (!inOpenList && openListCount < MAX_NODES) {
                     PathNode* neighborNode = allocNode(nx, ny, gCost, hCost, current);
-                    if (neighborNode) openList.push_back(neighborNode);
+                    if (neighborNode) openList[openListCount++] = neighborNode;
                 }
             }
         }

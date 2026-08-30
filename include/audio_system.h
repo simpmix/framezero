@@ -3,52 +3,56 @@
 
 #include <raylib.h>
 #include "rollback_netcode.h"
-#include <vector>
 
 namespace FrameZero {
 
 class RollbackAudio {
 private:
+    static constexpr int MAX_SOUNDS_PER_FRAME = 16;
     RollbackEngine* engine;
     int lastFrame;
-    std::vector<void*> playedThisFrame;
+    void* playedThisFrame[MAX_SOUNDS_PER_FRAME];
+    int playedCount;
 
 public:
-    RollbackAudio() : engine(nullptr), lastFrame(-1) {}
+    RollbackAudio() : engine(nullptr), lastFrame(-1), playedCount(0) {}
 
     void initialize(RollbackEngine* eng) {
         engine = eng;
         lastFrame = -1;
-        playedThisFrame.clear();
+        playedCount = 0;
     }
 
     void playSound(Sound sound) {
         if (!engine) return;
 
-        // Prevent ear-rape during resimulations
+        // Prevent ear-rape during resimulations (rollback frames)
         if (engine->isResimulating()) {
             return;
         }
 
         int currentFrame = engine->getCurrentFrame();
         
-        // Clear tracker if we moved to a new frame
+        // Clear tracker if we moved to a new logic frame
         if (currentFrame != lastFrame) {
-            playedThisFrame.clear();
+            playedCount = 0;
             lastFrame = currentFrame;
         }
 
-        // Check if the exact same sound played this frame
         void* soundId = sound.stream.buffer;
-        for (void* played : playedThisFrame) {
-            if (played == soundId) {
+        
+        // Prevent stacking the exact same sound 5 times on the exact same frame
+        for (int i = 0; i < playedCount; i++) {
+            if (playedThisFrame[i] == soundId) {
                 return; // Already played this frame
             }
         }
 
-        // Add to tracker and play
-        playedThisFrame.push_back(soundId);
-        PlaySound(sound);
+        // Add to tracker and play if we have space
+        if (playedCount < MAX_SOUNDS_PER_FRAME) {
+            playedThisFrame[playedCount++] = soundId;
+            PlaySound(sound);
+        }
     }
 };
 

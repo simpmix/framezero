@@ -33,6 +33,7 @@ public:
     
     void startRecording(uint32_t players) {
         frames.clear();
+        frames.reserve(3600); // Pre-allocate 1 minute of 60FPS to avoid mid-match allocations
         playerCount = players;
     }
     

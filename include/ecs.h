@@ -2,10 +2,8 @@
 #define FRAMEZERO_ECS_H
 
 #include <cstdint>
-#include <vector>
 #include <cstring>
 #include <typeinfo>
-#include <unordered_map>
 
 namespace FrameZero {
 
@@ -85,17 +83,36 @@ private:
     uint32_t nextEntity = 0;
     bool activeEntities[MAX_ENTITIES];
     
-    // Store component arrays
-    std::unordered_map<const char*, IComponentArray*> componentArrays;
+    // Fast O(1) component arrays without string hashing
+    static constexpr int MAX_COMPONENTS = 32;
+    IComponentArray* componentArrays[MAX_COMPONENTS];
+    int componentCount = 0;
+
+    // Component Type ID Generator
+    static int getNextComponentTypeId() {
+        static int nextId = 0;
+        return nextId++;
+    }
+
+    template<typename T>
+    static int getComponentTypeId() {
+        static int id = getNextComponentTypeId();
+        return id;
+    }
 
 public:
     Registry() {
         std::memset(activeEntities, 0, sizeof(activeEntities));
+        for (int i = 0; i < MAX_COMPONENTS; i++) {
+            componentArrays[i] = nullptr;
+        }
     }
     
     ~Registry() {
-        for (auto& pair : componentArrays) {
-            delete pair.second;
+        for (int i = 0; i < MAX_COMPONENTS; i++) {
+            if (componentArrays[i]) {
+                delete componentArrays[i];
+            }
         }
     }
 
@@ -112,17 +129,22 @@ public:
     void destroy(Entity entity) {
         if (entity < MAX_ENTITIES) {
             activeEntities[entity] = false;
-            for (auto& pair : componentArrays) {
-                pair.second->entityDestroyed(entity);
+            for (int i = 0; i < MAX_COMPONENTS; i++) {
+                if (componentArrays[i]) {
+                    componentArrays[i]->entityDestroyed(entity);
+                }
             }
         }
     }
 
     template<typename T>
     void registerComponent() {
-        const char* typeName = typeid(T).name();
-        if (componentArrays.find(typeName) == componentArrays.end()) {
-            componentArrays[typeName] = new ComponentArray<T>();
+        int typeId = getComponentTypeId<T>();
+        if (typeId < MAX_COMPONENTS && !componentArrays[typeId]) {
+            componentArrays[typeId] = new ComponentArray<T>();
+            if (typeId >= componentCount) {
+                componentCount = typeId + 1;
+            }
         }
     }
 
@@ -150,8 +172,10 @@ public:
     
     size_t getSerializationSize() const {
         size_t total = sizeof(activeEntities);
-        for (const auto& pair : componentArrays) {
-            total += pair.second->getMemorySize();
+        for (int i = 0; i < componentCount; i++) {
+            if (componentArrays[i]) {
+                total += componentArrays[i]->getMemorySize();
+            }
         }
         return total;
     }
@@ -159,24 +183,28 @@ public:
     void serialize(uint8_t* buffer, size_t& offset) const {
         std::memcpy(buffer + offset, activeEntities, sizeof(activeEntities));
         offset += sizeof(activeEntities);
-        for (const auto& pair : componentArrays) {
-            pair.second->serialize(buffer, offset);
+        for (int i = 0; i < componentCount; i++) {
+            if (componentArrays[i]) {
+                componentArrays[i]->serialize(buffer, offset);
+            }
         }
     }
 
     void deserialize(const uint8_t* buffer, size_t& offset) {
         std::memcpy(activeEntities, buffer + offset, sizeof(activeEntities));
         offset += sizeof(activeEntities);
-        for (auto& pair : componentArrays) {
-            pair.second->deserialize(buffer, offset);
+        for (int i = 0; i < componentCount; i++) {
+            if (componentArrays[i]) {
+                componentArrays[i]->deserialize(buffer, offset);
+            }
         }
     }
 
 private:
     template<typename T>
     ComponentArray<T>* getComponentArray() {
-        const char* typeName = typeid(T).name();
-        return static_cast<ComponentArray<T>*>(componentArrays[typeName]);
+        int typeId = getComponentTypeId<T>();
+        return static_cast<ComponentArray<T>*>(componentArrays[typeId]);
     }
 };
 
