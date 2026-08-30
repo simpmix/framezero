@@ -16,6 +16,11 @@ struct PhysicsBody {
     Vector2 size;  // Half-extents for AABB
     Fixed mass;
     Fixed invMass;
+    
+    // Collision Filtering (Bitmasks)
+    uint32_t collisionCategory = 0x00000001; // What am I? (Default: Layer 1)
+    uint32_t collisionMask     = 0xFFFFFFFF; // What do I collide with? (Default: Everything)
+    
     Fixed restitution;
     Fixed friction;
     BodyType type;
@@ -76,47 +81,52 @@ struct PhysicsBody {
     }
     
     // Serialize body state to bytes (for rollback snapshots)
-    void serialize(uint8_t* out) const {
-        // Position (8 bytes)
-        int32_t px = position.x.raw;
-        int32_t py = position.y.raw;
-        memcpy(out, &px, 4);
-        memcpy(out + 4, &py, 4);
-        
-        // Velocity (8 bytes)
-        int32_t vx = velocity.x.raw;
-        int32_t vy = velocity.y.raw;
-        memcpy(out + 8, &vx, 4);
-        memcpy(out + 12, &vy, 4);
-        
-        // State version (4 bytes)
-        memcpy(out + 16, &stateVersion, 4);
-        
-        // Freeze frames (4 bytes)
-        memcpy(out + 20, &freezeFrames, 4);
-        
-        // Active flag (1 byte)
-        out[24] = active ? 1 : 0;
+    void serialize(uint8_t* buffer) const {
+        memcpy(buffer, &id, 4);
+        buffer[4] = active ? 1 : 0;
+        memcpy(buffer + 5, &position.x.raw, 4);
+        memcpy(buffer + 9, &position.y.raw, 4);
+        memcpy(buffer + 13, &velocity.x.raw, 4);
+        memcpy(buffer + 17, &velocity.y.raw, 4);
+        memcpy(buffer + 21, &acceleration.x.raw, 4);
+        memcpy(buffer + 25, &acceleration.y.raw, 4);
+        memcpy(buffer + 29, &size.x.raw, 4);
+        memcpy(buffer + 33, &size.y.raw, 4);
+        memcpy(buffer + 37, &mass.raw, 4);
+        memcpy(buffer + 41, &freezeFrames, 4);
+        memcpy(buffer + 45, &restitution.raw, 4);
+        memcpy(buffer + 49, &friction.raw, 4);
+        buffer[53] = static_cast<uint8_t>(type);
+        memcpy(buffer + 54, &collisionCategory, 4);
+        memcpy(buffer + 58, &collisionMask, 4);
     }
     
     // Deserialize from bytes
-    void deserialize(const uint8_t* in) {
-        int32_t px, py, vx, vy;
-        memcpy(&px, in, 4);
-        memcpy(&py, in + 4, 4);
-        position.x.raw = px;
-        position.y.raw = py;
-        
-        memcpy(&vx, in + 8, 4);
-        memcpy(&vy, in + 12, 4);
-        velocity.x.raw = vx;
-        velocity.y.raw = vy;
-        
-        memcpy(&stateVersion, in + 16, 4);
-        memcpy(&freezeFrames, in + 20, 4);
-        active = (in[24] != 0);
+    void deserialize(const uint8_t* buffer) {
+        memcpy(&id, buffer, 4);
+        active = buffer[4] != 0;
+        memcpy(&position.x.raw, buffer + 5, 4);
+        memcpy(&position.y.raw, buffer + 9, 4);
+        memcpy(&velocity.x.raw, buffer + 13, 4);
+        memcpy(&velocity.y.raw, buffer + 17, 4);
+        memcpy(&acceleration.x.raw, buffer + 21, 4);
+        memcpy(&acceleration.y.raw, buffer + 25, 4);
+        memcpy(&size.x.raw, buffer + 29, 4);
+        memcpy(&size.y.raw, buffer + 33, 4);
+        memcpy(&mass.raw, buffer + 37, 4);
+        invMass = (mass.raw == 0) ? Fixed(0) : Fixed(1) / mass;
+        memcpy(&freezeFrames, buffer + 41, 4);
+        memcpy(&restitution.raw, buffer + 45, 4);
+        memcpy(&friction.raw, buffer + 49, 4);
+        type = static_cast<BodyType>(buffer[53]);
+        memcpy(&collisionCategory, buffer + 54, 4);
+        memcpy(&collisionMask, buffer + 58, 4);
     }
     
+    static constexpr size_t getSize() {
+        return 62; // Total size
+    }
+
     // Get AABB bounds
     Vector2 getMin() const { return Vector2(position.x - size.x, position.y - size.y); }
     Vector2 getMax() const { return Vector2(position.x + size.x, position.y + size.y); }

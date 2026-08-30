@@ -46,6 +46,7 @@
 #include "combat_system.h"
 #include "player_controller.h"
 #include "input_mapper.h"
+#include "effect_manager.h"
 
 // Rendering
 #include "interpolation_renderer.h"

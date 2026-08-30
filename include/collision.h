@@ -233,6 +233,10 @@ public:
     
     // Check if two bodies overlap (AABB test)
     static bool checkOverlap(const PhysicsBody& a, const PhysicsBody& b) {
+        // Broadphase filter using Bitmasks!
+        if (!(a.collisionMask & b.collisionCategory) || !(b.collisionMask & a.collisionCategory)) {
+            return false;
+        }
         Vector2 minA = a.getMin();
         Vector2 maxA = a.getMax();
         Vector2 minB = b.getMin();

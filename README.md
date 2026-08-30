@@ -21,10 +21,11 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 * **Zero-Allocation Data Structures**: Custom object pools, pathfinding queues, and broadphase grids guarantee absolutely zero `new`/`malloc` heap allocations during gameplay to prevent garbage collection stutters and state fragmentation.
 * **Delta Compression**: Network inputs are aggressively delta-compressed, minimizing UDP bandwidth overhead by up to 70%.
 
-### 🧮 100% Deterministic Math & Physics
-* **16.16 Fixed-Point Math (`Fixed`)**: Floats are banned. FrameZero uses a custom fixed-point math library with deterministic Trigonometry (`sin`, `cos`, `atan2`) and `Vector2` logic.
-* **Rollback RNG**: A fast, deterministic XorShift32 Random Number Generator that can perfectly serialize its seed during rollback resimulations to guarantee identical loot drops and critical hits.
-* **Spatial Grid Hash Broadphase**: Scales collision detection to thousands of objects deterministically.
+### ⚡ Deterministic Rollback Physics
+* **Fixed-Point Math Engine**: 16.16 Fixed-Point vectors, AABBs, and Trigonometry (`sin`, `cos`, `atan2`) guaranteeing 100% cross-platform determinism (Windows, Linux, macOS).
+* **Grid Hash Broadphase**: O(1) Spatial Grid collision detection for resolving hundreds of entities efficiently without O(N²) slowdowns.
+* **Collision Layer Filtering**: Bitmask-based collision categories and masks. Perfect for ensuring projectiles only hit enemies and not the player who fired them.
+* **Effect & Particle Manager**: A deterministic memory-pooled manager for spawning transient hit sparks and dust clouds that flawlessly rollback and auto-despawn.
 * **OBB + SAT Collision**: Full support for rotated hitboxes (Oriented Bounding Boxes) using the Separating Axis Theorem (SAT).
 * **Deterministic A* Pathfinding**: Navigates the Spatial Grid deterministically, avoiding floating-point heuristic drift.
 
