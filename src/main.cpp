@@ -25,13 +25,13 @@ int main() {
     // Initialize 2 bodies
     PhysicsBody initialBodies[2];
     initialBodies[0].position = FrameZero::Vector2(Fixed(200.0), Fixed(100.0));
-    initialBodies[0].size = FrameZero::Vector2(Fixed(20.0), Fixed(40.0));
+    initialBodies[0].size = FrameZero::Vector2(Fixed(100.0), Fixed(200.0));
     initialBodies[0].id = 1;
     initialBodies[0].active = true;
     initialBodies[0].setMass(Fixed(1.0));
     
-    initialBodies[1].position = FrameZero::Vector2(Fixed(600.0), Fixed(100.0));
-    initialBodies[1].size = FrameZero::Vector2(Fixed(20.0), Fixed(40.0));
+    initialBodies[1].position = FrameZero::Vector2(Fixed(500.0), Fixed(100.0));
+    initialBodies[1].size = FrameZero::Vector2(Fixed(100.0), Fixed(200.0));
     initialBodies[1].id = 2;
     initialBodies[1].active = true;
     initialBodies[1].setMass(Fixed(1.0));
@@ -93,7 +93,7 @@ int main() {
 
         // 1. Draw Game to Viewport Texture
         BeginTextureMode(viewport);
-        ClearBackground(RAYWHITE);
+        ClearBackground(DARKGRAY);
         
         // Draw the Character Sprites at the physics body positions
         for (int i = 0; i < renderCount; i++) {
