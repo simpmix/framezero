@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
   <img src="https://raw.githubusercontent.com/simpmix/framezero/main/README_LOGO.png?v=2" alt="FrameZero Logo" width="600" />
   <h1>FrameZero Engine</h1>
   <p><b>The Ultimate C++ 2D Framework for Deterministic Rollback Netcode</b></p>
