@@ -21,8 +21,8 @@ Instead of retrofitting rollback into an existing engine (like Unity or Unreal) 
 * **Zero-Allocation Data Structures**: Custom object pools, pathfinding queues, and broadphase grids guarantee absolutely zero `new`/`malloc` heap allocations during gameplay to prevent garbage collection stutters and state fragmentation.
 * **Delta Compression**: Network inputs are aggressively delta-compressed, minimizing UDP bandwidth overhead by up to 70%.
 
-### ⚡ Deterministic Rollback Physics
-* **Fixed-Point Math Engine**: 16.16 Fixed-Point vectors, AABBs, and Trigonometry (`sin`, `cos`, `atan2`) guaranteeing 100% cross-platform determinism (Windows, Linux, macOS).
+### ⚡ True Deterministic Rollback Physics
+* **100% Floating-Point Free Math Engine**: 16.16 Fixed-Point vectors and AABBs. We completely ripped out `<cmath>`. Sine, Cosine, and Atan2 are powered by a meticulously tuned **integer CORDIC algorithm**, and Square Root uses a binary search integer method, guaranteeing 100% bit-exact cross-platform determinism (Windows, Linux, macOS) down to the silicon.
 * **Grid Hash Broadphase**: O(1) Spatial Grid collision detection for resolving hundreds of entities efficiently without O(N²) slowdowns.
 * **Collision Layer Filtering**: Bitmask-based collision categories and masks. Perfect for ensuring projectiles only hit enemies and not the player who fired them.
 * **Effect & Particle Manager**: A deterministic memory-pooled manager for spawning transient hit sparks and dust clouds that flawlessly rollback and auto-despawn.

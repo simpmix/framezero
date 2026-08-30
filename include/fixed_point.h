@@ -2,7 +2,6 @@
 #define FRAMEZERO_FIXED_POINT_H
 
 #include <cstdint>
-#include <cmath>
 
 namespace FrameZero {
 
@@ -59,15 +58,27 @@ public:
         return v;
     }
 
-    // Fast integer sqrt using binary search (fully deterministic)
+    // Fast integer sqrt (fully deterministic, zero floating point)
     static Fixed sqrt(const Fixed& x) {
         if (x.raw <= 0) return Fixed::fromRaw(0);
         
-        // Convert to double, compute sqrt, convert back
-        // This is deterministic because we always use the same rounding
-        double val = static_cast<double>(x.raw) / ONE;
-        double result = std::sqrt(val);
-        return Fixed(result);
+        uint64_t num = static_cast<uint64_t>(x.raw) << SHIFT;
+        uint64_t res = 0;
+        uint64_t bit = 1ULL << 62; // The second-to-top bit is set
+        
+        // "bit" starts at the highest power of four <= the argument.
+        while (bit > num) bit >>= 2;
+        
+        while (bit != 0) {
+            if (num >= res + bit) {
+                num -= res + bit;
+                res = (res >> 1) + bit;
+            } else {
+                res >>= 1;
+            }
+            bit >>= 2;
+        }
+        return Fixed::fromRaw(static_cast<int32_t>(res));
     }
 
     // Lookup table based sin/cos for determinism

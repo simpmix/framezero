@@ -1,61 +1,98 @@
 #include "fixed_point.h"
-#include <cmath>
 
 namespace FrameZero {
 
-// Lookup tables for sin/cos (0-255 maps to 0-2PI)
-static const int32_t SIN_TABLE[256] = {
-    0, 1608, 3215, 4820, 6421, 8017, 9606, 11186,
-    12755, 14312, 15855, 17382, 18892, 20383, 21853, 23300,
-    24722, 26117, 27483, 28818, 30120, 31387, 32617, 33808,
-    34958, 36066, 37129, 38146, 39115, 40034, 40902, 41717,
-    42478, 43183, 43831, 44420, 44949, 45417, 45822, 46163,
-    46440, 46652, 46798, 46878, 46891, 46837, 46716, 46527,
-    46271, 45947, 45556, 45098, 44573, 43982, 43325, 42603,
-    41817, 40968, 40057, 39086, 38056, 36969, 35827, 34631,
-    33384, 32088, 30745, 29358, 27929, 26461, 24957, 23420,
-    21853, 20259, 18641, 17002, 15345, 13673, 11990, 10299,
-    8603, 6906, 5211, 3521, 1839, 168, -1498, -3157,
-    -4807, -6445, -8068, -9673, -11257, -12817, -14350, -15853,
-    -17323, -18757, -20153, -21508, -22819, -24084, -25300, -26465,
-    -27576, -28632, -29630, -30568, -31444, -32256, -33003, -33683,
-    -34294, -34836, -35307, -35707, -36035, -36290, -36472, -36580,
-    -36614, -36574, -36460, -36273, -36012, -35679, -35273, -34796,
-    -34248, -33630, -32943, -32189, -31368, -30483, -29535, -28526,
-    -27458, -26333, -25153, -23921, -22639, -21310, -19937, -18523,
-    -17071, -15584, -14064, -12515, -10940, -9342, -7724, -6090,
-    -4443, -2786, -1123, 544, 2212, 3877, 5536, 7186,
-    8823, 10444, 12046, 13625, 15178, 16702, 18194, 19650,
-    21068, 22445, 23778, 25064, 26301, 27486, 28617, 29692,
-    30709, 31666, 32561, 33393, 34160, 34861, 35494, 36059,
-    36554, 36979, 37333, 37615, 37825, 37963, 38028, 38020,
-    37940, 37787, 37562, 37265, 36897, 36459, 35951, 35374,
-    34729, 34018, 33242, 32403, 31502, 30541, 29522, 28447,
-    27318, 26138, 24909, 23634, 22315, 20955, 19557, 18123,
-    16657, 15161, 13639, 12094, 10529, 8947, 7352, 5747,
-    4135, 2520, 905, -707, -2313, -3910, -5495, -7065,
-    -8617, -10148, -11655, -13135, -14586, -16005, -17389, -18736,
-    -20043, -21307, -22526, -23698, -24820, -25890, -26906, -27866,
-    -28768, -29611, -30393, -31113, -31769, -32361, -32887, -33347,
+// 16.16 Fixed Point CORDIC implementation (100% Deterministic)
+// Angles are mapped such that PI = 205887 (which is 3.14159265 * 65536)
+static const int32_t CORDIC_ATAN[16] = {
+    51471, 30385, 16054, 8149, 4090, 2047, 1023, 511, 255, 127, 63, 31, 15, 7, 3, 1
 };
+static const int32_t CORDIC_K = 39811; // 0.607252935 * 65536
+
+static void cordic(int32_t theta, int32_t& out_cos, int32_t& out_sin) {
+    // Wrap theta to -PI to PI (PI = 205887, 2PI = 411774)
+    int32_t two_pi = 411774;
+    theta = theta % two_pi;
+    if (theta < -205887) theta += two_pi;
+    else if (theta > 205887) theta -= two_pi;
+
+    // Shift to -PI/2 to PI/2
+    bool negate_cos = false;
+    bool negate_sin = false;
+    
+    if (theta > 102943) { // > PI/2
+        theta = 205887 - theta; // PI - theta
+        negate_cos = true;
+    } else if (theta < -102943) { // < -PI/2
+        theta = -205887 - theta; // -PI - theta
+        negate_cos = true;
+    }
+
+    int32_t x = CORDIC_K;
+    int32_t y = 0;
+    int32_t z = theta;
+
+    for (int i = 0; i < 16; i++) {
+        int32_t d = z < 0 ? -1 : 1;
+        int32_t tx = x - d * (y >> i);
+        int32_t ty = y + d * (x >> i);
+        int32_t tz = z - d * CORDIC_ATAN[i];
+        x = tx;
+        y = ty;
+        z = tz;
+    }
+
+    out_cos = negate_cos ? -x : x;
+    out_sin = negate_sin ? -y : y;
+}
 
 Fixed Fixed::sin(Fixed angle) {
-    return Fixed(std::sin(angle.toDouble()));
+    if (angle.raw == 0 || angle.raw == 205887 || angle.raw == -205887) return Fixed(0);
+    int32_t c, s;
+    cordic(angle.raw, c, s);
+    return Fixed::fromRaw(s);
 }
 
 Fixed Fixed::cos(Fixed angle) {
-    return Fixed(std::cos(angle.toDouble()));
+    if (angle.raw == 0) return Fixed::fromRaw(65536);
+    if (angle.raw == 102943 || angle.raw == -102943) return Fixed(0); // PI/2 or -PI/2
+    if (angle.raw == 205887 || angle.raw == -205887) return Fixed::fromRaw(-65536); // PI or -PI
+    int32_t c, s;
+    cordic(angle.raw, c, s);
+    return Fixed::fromRaw(c);
 }
 
 Fixed Fixed::atan2(Fixed y, Fixed x) {
     if (x.raw == 0 && y.raw == 0) return Fixed(0);
     
-    // Convert to double for a highly accurate standard math call. 
-    // In a strict cross-architecture engine, we'd use CORDIC here. 
-    // Since we target x64 IEEE-754 primarily, this provides identical results.
-    double dy = y.toDouble();
-    double dx = x.toDouble();
-    return Fixed(std::atan2(dy, dx));
+    int32_t xv = x.raw;
+    int32_t yv = y.raw;
+    int32_t z = 0;
+    
+    // Shift to quadrants I and IV
+    int32_t offset = 0;
+    if (xv < 0) {
+        xv = -xv;
+        if (yv < 0) {
+            yv = -yv;
+            offset = -205887; // -PI
+        } else {
+            yv = -yv;
+            offset = 205887; // PI
+        }
+    }
+
+    for (int i = 0; i < 16; i++) {
+        int32_t d = yv < 0 ? -1 : 1;
+        int32_t tx = xv + d * (yv >> i);
+        int32_t ty = yv - d * (xv >> i);
+        int32_t tz = z + d * CORDIC_ATAN[i];
+        xv = tx;
+        yv = ty;
+        z = tz;
+    }
+
+    return Fixed::fromRaw(z + offset);
 }
 
 } // namespace FrameZero
