@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <cstring>
+#include <typeinfo>
 #include <unordered_map>
 
 namespace FrameZero {
