@@ -69,12 +69,6 @@ int main() {
             pc1.update(p1_input);
             pc2.update(p2_input);
 
-            // engine.simulateFrame has hardcoded gravity for body 0 only
-            // Manually add gravity to body 1 to compensate
-            if (engine.bodyCount > 1) {
-                engine.bodies[1].applyForce(FrameZero::Vector2(0, -engine.gravity) * engine.bodies[1].mass);
-            }
-
             // Advance frame (simulateFrame handles local/remote inputs)
             engine.simulateFrame(p1_input, p2_input);
 

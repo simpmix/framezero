@@ -28,7 +28,7 @@ public:
             float drawW = sx * 2.0f;
             float drawH = sy * 2.0f;
             
-            DrawRectangleRec({drawX, drawY, drawW, drawH}, BLUE);
+            DrawRectangleRec(Rectangle{drawX, drawY, drawW, drawH}, BLUE);
         }
         
         // Draw hitboxes and hurtboxes from players
@@ -51,7 +51,7 @@ public:
             float hurtDrawW = hsx * 2.0f;
             float hurtDrawH = hsy * 2.0f;
             
-            DrawRectangleLinesEx({hurtDrawX, hurtDrawY, hurtDrawW, hurtDrawH}, 2.0f, GREEN);
+            DrawRectangleLinesEx(Rectangle{hurtDrawX, hurtDrawY, hurtDrawW, hurtDrawH}, 2.0f, GREEN);
             
             // Draw hitbox (Red)
             if (pc.attackHitbox.active) {
@@ -65,7 +65,7 @@ public:
                 float hitDrawW = asx * 2.0f;
                 float hitDrawH = asy * 2.0f;
                 
-                DrawRectangleLinesEx({hitDrawX, hitDrawY, hitDrawW, hitDrawH}, 2.0f, RED);
+                DrawRectangleLinesEx(Rectangle{hitDrawX, hitDrawY, hitDrawW, hitDrawH}, 2.0f, RED);
             }
         }
     }
