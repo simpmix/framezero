@@ -23,6 +23,7 @@
 #include "camera.h"
 #include "thread_pool.h"
 #include "asset_manager.h"
+#include "scene_manager.h"
 
 // Rollback Netcode & Logic
 #include "input.h"
