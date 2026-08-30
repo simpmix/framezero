@@ -13,6 +13,7 @@
 #include "collision.h"
 #include "state_serialization.h"
 #include "replay_system.h"
+#include "pathfinding.h"
 #include "delta_compression.h"
 #include "rollback_netcode.h"
 #include "player_controller.h"
@@ -517,6 +518,23 @@ int main() {
     test_deterministic_trig();
     test_ecs_serialization();
     
+    std::cout << "\n=== Testing Deterministic A* Pathfinding ===\n";
+    FrameZero::Pathfinder pf(10, 10, FrameZero::Fixed(10));
+    pf.setObstacle(5, 5, true);
+    pf.setObstacle(5, 4, true);
+    pf.setObstacle(5, 6, true);
+    
+    FrameZero::Vector2 path[100];
+    int pathCount = pf.findPath(2, 5, 8, 5, path, 100);
+    
+    if (pathCount > 0) {
+        std::cout << "[PASS] Path successfully routed around obstacle\n";
+        testsPassed++;
+    } else {
+        std::cout << "[FAIL] No path found\n";
+        testsFailed++;
+    }
+
     std::cout << "\n========================================" << std::endl;
     std::cout << "Test Results:" << std::endl;
     std::cout << "  Passed: " << testsPassed << std::endl;

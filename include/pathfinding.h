@@ -40,7 +40,7 @@ private:
         Fixed dx = a.gridX - b.gridX;
         Fixed dy = a.gridY - b.gridY;
         // Manhattan distance for extreme speed and determinism
-        return dx.abs() + dy.abs();
+        return Fixed::abs(dx) + Fixed::abs(dy);
     }
 
 public:
