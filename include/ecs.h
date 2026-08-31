@@ -1,14 +1,14 @@
-#ifndef FRAMEZERO_ECS_H
-#define FRAMEZERO_ECS_H
+#pragma once
 
 #include <cstdint>
 #include <cstring>
-#include <typeinfo>
+#include <vector>
+#include <utility>
 
 namespace FrameZero {
 
 using Entity = uint32_t;
-constexpr Entity MAX_ENTITIES = 256;
+constexpr Entity MAX_ENTITIES = 2048; // Expanded from 256 for larger games!
 constexpr Entity NULL_ENTITY = 0xFFFFFFFF;
 
 // Base class for arrays to allow polymorphism during serialization
@@ -58,11 +58,11 @@ public:
         remove(entity);
     }
     
-    // Memory footprint: sizeof(data) + sizeof(active)
     size_t getMemorySize() const override {
         return sizeof(data) + sizeof(active);
     }
     
+    // O(1) contiguous serialization per component type!
     void serialize(uint8_t* buffer, size_t& offset) const override {
         std::memcpy(buffer + offset, data, sizeof(data));
         offset += sizeof(data);
@@ -83,8 +83,7 @@ private:
     uint32_t nextEntity = 0;
     bool activeEntities[MAX_ENTITIES];
     
-    // Fast O(1) component arrays without string hashing
-    static constexpr int MAX_COMPONENTS = 32;
+    static constexpr int MAX_COMPONENTS = 64;
     IComponentArray* componentArrays[MAX_COMPONENTS];
     int componentCount = 0;
 
@@ -149,8 +148,16 @@ public:
     }
 
     template<typename T>
-    void addComponent(Entity entity, T component) {
+    void addComponent(Entity entity, const T& component) {
         getComponentArray<T>()->insert(entity, component);
+    }
+    
+    // Modern Emplace API
+    template<typename T, typename... Args>
+    T& emplaceComponent(Entity entity, Args&&... args) {
+        T comp(std::forward<Args>(args)...);
+        getComponentArray<T>()->insert(entity, comp);
+        return getComponentArray<T>()->get(entity);
     }
 
     template<typename T>
@@ -166,6 +173,22 @@ public:
     template<typename T>
     bool hasComponent(Entity entity) {
         return getComponentArray<T>()->has(entity);
+    }
+
+    // Modern View API (EnTT style) for lightning-fast system iteration!
+    template<typename... Components>
+    std::vector<Entity> view() {
+        std::vector<Entity> result;
+        result.reserve(64); // Prevent frequent reallocation
+        for (Entity e = 0; e < MAX_ENTITIES; ++e) {
+            if (activeEntities[e]) {
+                // Fold expression checks if entity has ALL requested components
+                if ((hasComponent<Components>(e) && ...)) {
+                    result.push_back(e);
+                }
+            }
+        }
+        return result;
     }
 
     // --- Rollback Hooks ---
@@ -209,5 +232,3 @@ private:
 };
 
 } // namespace FrameZero
-
-#endif // FRAMEZERO_ECS_H
