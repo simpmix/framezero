@@ -1,83 +1,68 @@
 #pragma once
-#include "fixed_point.h"
 #include <cstdint>
-#include <cstddef>
+#include <cstring>
+#include "fixed_point.h"
 
 namespace FrameZero {
 
-// A perfectly deterministic Random Number Generator (RNG) for Rollback Netcode.
-// Standard std::rand() or std::mt19937 are dangerous in rollback because their internal 
-// states must be saved and restored exactly upon a resimulation, which is difficult.
-// This uses a lightweight, high-quality XorShift32 algorithm that serializes cleanly.
-
+// A strictly deterministic, rollback-aware Random Number Generator.
+// Uses the PCG (Permuted Congruential Generator) algorithm for excellent statistical quality and extreme speed.
 class RollbackRNG {
 private:
-    uint32_t state;
+    uint64_t state;
+    uint64_t inc;
 
 public:
-    RollbackRNG(uint32_t seed = 1337) : state(seed) {
-        if (state == 0) state = 1; // XorShift cannot have a 0 state
+    RollbackRNG() : state(0x853c49e6748fea9bULL), inc(0xda3e39cb94b95bdbULL) {}
+
+    // Seed the RNG (Should be called once at the start of a match with an agreed-upon network seed)
+    void seed(uint64_t initState, uint64_t initSeq) {
+        state = 0U;
+        inc = (initSeq << 1u) | 1u;
+        next();
+        state += initState;
+        next();
     }
 
-    // Set or reset the deterministic seed
-    void setSeed(uint32_t seed) {
-        state = seed;
-        if (state == 0) state = 1;
+    // Generate a raw 32-bit random integer
+    uint32_t next() {
+        uint64_t oldstate = state;
+        // Advance internal state
+        state = oldstate * 6364136223846793005ULL + (inc | 1);
+        // Calculate output function (XSH RR)
+        uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
+        uint32_t rot = oldstate >> 59u;
+        return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
     }
 
-    // Generates a random 32-bit integer
-    uint32_t nextInt() {
-        uint32_t x = state;
-        x ^= x << 13;
-        x ^= x >> 17;
-        x ^= x << 5;
-        state = x;
-        return x;
-    }
-
-    // Generates a random integer in range [min, max]
-    int nextRange(int min, int max) {
-        if (max <= min) return min;
-        return min + (nextInt() % (max - min + 1));
-    }
-
-    // Generates a random deterministic Fixed-point number between 0.0 and 1.0
+    // Generate a random Fixed-Point number between 0.0 and 1.0
     Fixed nextFixed() {
-        // Use top 16 bits for high quality distribution
-        uint32_t val = (nextInt() >> 16); 
-        // 65535 is 0xFFFF. Divide by 65535.0 using Fixed math
-        return Fixed(static_cast<int>(val)) / Fixed(65535);
+        // Use top 15 bits for a clean 0 to 1 range mapping
+        uint32_t raw = next() & 0x7FFF;
+        return Fixed::fromInt(raw) / Fixed::fromInt(0x7FFF);
     }
     
-    // Generates a random Fixed-point number between min and max
-    Fixed nextFixedRange(Fixed min, Fixed max) {
+    // Generate a random integer between min and max (inclusive)
+    int nextInt(int min, int max) {
         if (max <= min) return min;
-        Fixed t = nextFixed();
-        return min + (max - min) * t;
+        uint32_t range = (max - min) + 1;
+        return min + (next() % range);
     }
 
-    // --- Rollback Serialization Hooks ---
-    // The RNG state MUST be saved alongside the physics state so random events 
-    // (like critical hits or loot drops) happen exactly the same during resimulation.
+    // --- Rollback Snapshot Hooks ---
+    // The RNG state MUST be serialized along with physics. 
+    // If a frame is rolled back, the RNG seed rewinds so critical hits/loot drops don't change!
     
     void serialize(uint8_t* buffer) const {
-        // Save 4 bytes
-        buffer[0] = static_cast<uint8_t>(state & 0xFF);
-        buffer[1] = static_cast<uint8_t>((state >> 8) & 0xFF);
-        buffer[2] = static_cast<uint8_t>((state >> 16) & 0xFF);
-        buffer[3] = static_cast<uint8_t>((state >> 24) & 0xFF);
+        std::memcpy(buffer, this, sizeof(RollbackRNG));
     }
-
+    
     void deserialize(const uint8_t* buffer) {
-        // Restore 4 bytes
-        state = static_cast<uint32_t>(buffer[0]) |
-               (static_cast<uint32_t>(buffer[1]) << 8) |
-               (static_cast<uint32_t>(buffer[2]) << 16) |
-               (static_cast<uint32_t>(buffer[3]) << 24);
+        std::memcpy(this, buffer, sizeof(RollbackRNG));
     }
     
     static constexpr size_t getSize() {
-        return sizeof(uint32_t);
+        return sizeof(RollbackRNG);
     }
 };
 
