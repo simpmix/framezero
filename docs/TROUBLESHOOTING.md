@@ -13,19 +13,23 @@ A desync occurs when Player 1's computer and Player 2's computer calculate diffe
 * **Good**: `Fixed speed = Fixed(1.5); body.position.x += speed;`
 Always use the `FrameZero::Fixed` struct for all game-affecting logic.
 
-### Uninitialized Variables
-If a component in your ECS has an uninitialized variable, it will contain garbage memory. When the rollback engine snapshots the state, it will copy that garbage, leading to unpredictable divergence.
-* **Fix**: Always initialize your structs: `struct Health { int hp = 100; };`
+### UI and Audio Logic in the Physics Loop
+If you play a sound effect or trigger a UI health bar animation directly inside the physics loop, a rollback will cause that code to execute multiple times, leading to explosive "ear-rape" audio or stuttering UI.
+* **Fix**: Use the `EventBus` (`event_bus.h`). Fire a `HitEvent` from the physics loop, and let the non-deterministic UI layer listen to the bus safely!
 
 ### Using Global or Static State
 The Rollback Engine rewinds the `PhysicsBody` array and the `Registry` (ECS). If you store game state in a global variable (e.g., `static int comboCount = 0;`), the engine **cannot** rewind it.
 * **Fix**: Move `comboCount` into an ECS Component.
 
-### RNG (Random Number Generators)
-Standard `rand()` or `std::mt19937` will desync instantly if you call them during a rollback resimulation (because they will advance their internal state).
-* **Fix**: Use a deterministic RNG seeded at the start of the match. Furthermore, you must serialize the RNG's internal state into the ECS so it correctly rewinds during a rollback.
+### Standard C++ RNG (Random Number Generators)
+Standard `rand()` or `std::mt19937` will desync instantly if you call them during a rollback resimulation (because they will advance their internal state incorrectly).
+* **Fix**: You must use the built-in `FrameZero::RollbackRNG` (`rollback_rng.h`). Its internal Permuted Congruential Generator (PCG) seed is directly tied into the rollback snapshot buffer, guaranteeing that random critical hits or procedural generation rewinds safely.
 
-## 3. How to Debug a Desync
+## 3. Dealing with Initial Match Stutter (High Ping)
+If a match stutters horribly as soon as it begins, it means Player 1 and Player 2 started executing Frame 0 at different real-world times. 
+* **Fix**: You must use `SyncManager` (`sync_manager.h`) before the match starts to exchange UDP ping/pongs. It will automatically calculate the required **Input Delay Frame Advantage** so both clients execute Frame 0 in perfect lockstep.
+
+## 4. How to Debug a Desync
 If your game desyncs, follow these steps:
 
 1. **Enable Replay Recording**: Ensure both clients are saving their inputs and physics snapshots to a `.frz` replay file.
@@ -35,7 +39,7 @@ If your game desyncs, follow these steps:
    ```
 3. The tool will compare the FNV-1a checksums for every frame and print exactly which frame first diverged, and which variables caused it.
 
-## 4. Testing Network Conditions (NetworkSimulator)
+## 5. Testing Network Conditions (NetworkSimulator)
 Do not wait until your game is finished to test it online. Network latency hides bugs. 
 
 Use the built-in `NetworkSimulator` class to artificially inject latency, jitter, and packet loss into your local development builds. 

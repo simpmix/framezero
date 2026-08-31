@@ -1,9 +1,9 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/simpmix/framezero/main/README_LOGO.png?v=2" alt="FrameZero Logo" width="600" />
-  <h1>FrameZero Engine</h1>
-  <p><b>The Ultimate C++ 2D Framework for Deterministic Rollback Netcode</b></p>
+  <h1>FrameZero Engine v1.0.0</h1>
+  <p><b>The Ultimate C++ 2D & 3D Framework for Deterministic Rollback Netcode</b></p>
   
-  [![Build Status](https://github.com/simpmix/framezero/actions/workflows/ci.yml/badge.svg)](https://github.com/simpmix/framezero/actions)
+  [![Build Status](https://github.com/simpmix/framezero/actions/workflows/release.yml/badge.svg)](https://github.com/simpmix/framezero/actions)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://isocpp.org/)
 </div>
@@ -12,134 +12,119 @@
 
 **FrameZero** is a cross-platform (Windows, Linux, macOS) C++17 game engine built completely from scratch to solve the hardest problem in multiplayer game development: **Deterministic Rollback Netcode.**
 
-Instead of retrofitting rollback into an existing engine (like Unity or Unreal) which often leads to desyncs and memory leaks, FrameZero is designed from the metal up to be 100% deterministic and memory-safe. Every math operation, every physics step, and every particle effect guarantees identical results across all CPU architectures.
+FrameZero is designed from the metal up to be 100% deterministic and memory-safe. Every math operation, every physics step, and every particle effect guarantees identical results across all CPU architectures.
 
-## 🌟 Next-Gen Features
+## 🚀 Next-Gen Features (v1.0.0)
 
-### ⏱️ Rollback-Native Architecture
-* **State Snapshot ECS**: A custom Entity Component System (ECS) designed specifically to serialize and deserialize the entire game state (thousands of entities) in less than `0.02ms` per frame.
-* **Zero-Allocation Data Structures**: Custom object pools, pathfinding queues, and broadphase grids guarantee absolutely zero `new`/`malloc` heap allocations during gameplay to prevent garbage collection stutters and state fragmentation.
+### ⚡ Hyper-Optimized Rollback Architecture
+* **O(1) Snapshot ECS**: A custom Entity Component System (ECS) designed with strict C++ memory alignment (`#pragma pack`) and contiguous EnTT-style tuple views. It serializes and deserializes the entire game state in a single, lightning-fast `memcpy` instruction.
+* **Zero-Allocation Data Structures**: Custom object pools, pathfinding queues, and broadphase grids guarantee absolutely zero `new`/`malloc` heap allocations during gameplay to prevent garbage collection stutters.
 * **Delta Compression**: Network inputs are aggressively delta-compressed, minimizing UDP bandwidth overhead by up to 70%.
 
-### ⚡ True Deterministic Rollback Physics
-* **100% Floating-Point Free Math Engine**: 16.16 Fixed-Point vectors and AABBs. We completely ripped out `<cmath>`. Sine, Cosine, and Atan2 are powered by a meticulously tuned **integer CORDIC algorithm**, and Square Root uses a binary search integer method, guaranteeing 100% bit-exact cross-platform determinism (Windows, Linux, macOS) down to the silicon.
-* **Grid Hash Broadphase**: O(1) Spatial Grid collision detection for resolving hundreds of entities efficiently without O(N²) slowdowns.
-* **Collision Layer Filtering**: Bitmask-based collision categories and masks. Perfect for ensuring projectiles only hit enemies and not the player who fired them.
-* **Effect & Particle Manager**: A deterministic memory-pooled manager for spawning transient hit sparks and dust clouds that flawlessly rollback and auto-despawn.
-* **OBB + SAT Collision**: Full support for rotated hitboxes (Oriented Bounding Boxes) using the Separating Axis Theorem (SAT).
-* **Deterministic A* Pathfinding**: Navigates the Spatial Grid deterministically, avoiding floating-point heuristic drift.
+### 🧊 2D & 3D Deterministic Physics
+* **100% Floating-Point Free Math**: 16.16 Fixed-Point vectors (2D and 3D). We completely ripped out `<cmath>`. Sine, Cosine, and Atan2 are powered by a meticulously tuned **integer CORDIC algorithm**, and Square Root uses a bitwise integer method.
+* **Rigid Body Angular Momentum**: Full support for deterministic 2D Torque and true **3D Quaternions**, completely preventing Gimbal Lock.
+* **Arbitrary Polygon Physics (SAT)**: Full support for arbitrary convex hitboxes (Triangles, Hexagons) using the Separating Axis Theorem.
+* **O(log N) Spatial QuadTree**: Hyper-fast broadphase collision detection for resolving thousands of entities efficiently without O(N²) slowdowns.
 
-### 🎮 Fighting Game & Action Tools
-* **Motion Input Parser**: Track 60 frames of input history and instantly detect advanced joystick motions like Quarter-Circle Forward (QCF) or Dragon Punch (DP).
-* **Input Config Mapper**: Dynamically map Keyboard and XInput Gamepad bindings directly into the deterministic rollback struct. Supports overriding D-Pad with analog sticks seamlessly.
-* **Combat Math Engine**: Robust fighting game mathematics utility handling Combo Scaling (Proration), Crouching Hitstun bonuses, and dynamic Corner Pushback.
-* **Animator State Machine**: A Unity-style node-based animator component that manages complex transitions between states (Idle, Walk, Attack) based on conditional lambdas.
-* **Dynamic Camera Controller**: A fighting-game specific camera that automatically tracks the midpoint between players, dynamically zooms based on distance, and enforces hard stage boundaries deterministically.
-* **Behavior Tree AI**: Native C++ behavior trees (`BTSequence`, `BTSelector`) for deterministic enemy AI without the overhead of Lua scripting.
-* **Rollback-Safe Audio & Particles**: Prevents explosive "ear-rape" audio duplication and visual ghosting during network resimulations.
+### 🧠 Advanced Mechanics & AI
+* **Deterministic Character Virtual Machine**: A built-in bytecode interpreter (`StateMachineVM`) that allows developers to script complex character logic and attack data safely.
+* **Flow Field Swarm Pathfinding**: O(1) Vector Field routing designed to seamlessly pathfind 1,000+ RTS units simultaneously without choking the CPU during a rollback frame.
+* **Deterministic Rollback RNG (PCG)**: A Permuted Congruential Generator whose seed is deeply tied to the rollback state, allowing for true Procedurally Generated Multiplayer Roguelikes.
 
-### 🚀 Cross-Platform Mastery
-* **Automated CI/CD**: Fully tested via GitHub Actions on Ubuntu, macOS, and Windows.
-* **Cross-OS Thread Pool**: Offload heavy AI or Audio tasks to a C++11 `<thread>` pool without stalling the 60FPS main loop.
-* **Smart Asset Manager**: Automatically normalizes file paths (`\` vs `/`) and lowercase rules to prevent "works on my machine" crashes between Windows and Linux.
-* **Stack-Based Scene Manager**: Push and Pop game states seamlessly (Menu -> Game -> Pause).
-* **Decoupled Event Bus**: A robust Message Bus for broadcasting game events (e.g. `PlayerHitEvent`) to the Audio and UI systems without spaghetti dependencies.
-* **Config/INI Parser**: Native cross-platform loading and saving of user configuration files (resolution, keybinds, volume).
+### 🎮 Multi-Genre Support
+Out of the box, FrameZero ships with highly-tuned, deterministic physics controllers for multiple genres:
+* **`PlatformerController`**: Modern game-feel mechanics like Coyote Time, Jump Buffering, and Variable Jump Heights.
+* **`TopDownController`**: 8-way directional movement with strict diagonal speed normalization.
+* **`Raycaster`**: Deterministic DDA line-of-sight checks for hitscan weapons and stealth mechanics.
+
+### 🛠️ Developer & Debugging Suite
+* **`SyncManager`**: Automates the pre-match UDP Ping/Pong handshake to calculate exact frame advantage and input delay.
+* **`NetworkSimulator`**: Artificially inject latency, jitter, and packet loss directly into your local socket.
+* **`FrameZeroDesyncFinder`**: Pass in two replay files and instantly pinpoint the exact frame and variable that caused a butterfly-effect desync via FNV-1a checksums.
 
 ---
 
-## 🛠️ Getting Started
+## 📦 How to Use in Your Project
 
-### Prerequisites
-* **Windows**: Visual Studio 2022 (Desktop Development with C++)
-* **Linux (Ubuntu/Debian)**: 
-  ```bash
-  sudo apt-get install cmake gcc g++ libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libxkbcommon-dev
-  ```
-* **macOS**: `brew install cmake`
+FrameZero is distributed as a headless C++ static library. You do not need to download packages or installers. Simply integrate it directly into your project's CMake configuration using `FetchContent`:
 
-### Building
+```cmake
+include(FetchContent)
 
-**Visual Studio (Windows)**
-1. Clone the repository and open the folder in Visual Studio.
-2. Wait for the automatic CMake configuration to complete.
-3. Build all and run `FrameZeroTests.exe` to verify the core engine math.
-4. *Note: FrameZero is a headless engine library. Include `framezero` in your own project's CMake to build a game.*
+# Fetch the FrameZero Engine source code directly from GitHub
+FetchContent_Declare(
+    framezero
+    URL https://github.com/simpmix/framezero/archive/refs/tags/v1.0.0.zip
+)
+FetchContent_MakeAvailable(framezero)
 
-**Terminal (Linux / macOS)**
-```bash
-git clone https://github.com/simpmix/framezero.git
-cd framezero
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-cmake --build .
-./FrameZeroTests
+# Link it to your game executable
+add_executable(MyGame main.cpp)
+target_link_libraries(MyGame PRIVATE framezero)
 ```
 
 ---
 
-## 💻 Code Examples
+## 📖 Code Examples
 
-### 1. Fighting Game Motions & Rotated Hitboxes
+### 1. Modern EnTT-Style ECS View API
 ```cpp
-#include <FrameZero.h>
+#include <ecs.h>
 using namespace FrameZero;
 
-MotionParser p1InputParser;
-OBB swordHitbox;
+Registry ecs;
 
-void gameLogicCallback(RollbackEngine* engine, Input local, Input remote) {
-    p1InputParser.update(local);
+// Instantly grab all entities that have BOTH a PhysicsBody and a PlayerController!
+for (auto entity : ecs.view<PhysicsBody, PlayerController>()) {
     
-    // Detect a Hadouken (Quarter-Circle Forward)
-    if (p1InputParser.detectQCF(15) && (local.buttons & BTN_PUNCH)) {
-        engine->spawnProjectile(ProjectileType::FIREBALL);
-    }
-
-    // Rotated Hitbox Collision (SAT)
-    swordHitbox.center = Vector2(Fixed(10), Fixed(10));
-    swordHitbox.extents = Vector2(Fixed(5), Fixed(20));
-    swordHitbox.angle = Fixed::pi() / Fixed(4); // 45 degrees
-
-    if (checkOBBOverlap(swordHitbox, enemyHurtbox)) {
-        // Apply Damage and 5-Frame Hitstop!
-    }
+    // Retrieve the actual component data
+    auto& body = ecs.getComponent<PhysicsBody>(entity);
+    auto& player = ecs.getComponent<PlayerController>(entity);
+    
+    // Process deterministic game logic...
 }
 ```
 
-### 2. Scene Management
+### 2. Network Synchronization & Frame Advantage
 ```cpp
-SceneManager scenes;
+#include <sync_manager.h>
+using namespace FrameZero;
 
-// Transition to Gameplay
-scenes.changeScene(std::make_unique<GameplayScene>());
+SyncManager sync;
+sync.startSync();
 
-// Player pauses the game
-scenes.pushScene(std::make_unique<PauseMenuScene>());
+// In your menu/lobby loop:
+while (!sync.isReady()) {
+    sync.update(udpSocket, opponentIP, opponentPort);
+}
 
-// Update active scene
-scenes.update(dt);
-scenes.draw();
+// Once ready, calculate the required input delay to mask the latency!
+int inputDelayFrames = sync.getRecommendedFrameDelay();
 ```
 
-### 3. Thread Pool Task Offloading
+### 3. Decoupled Event Bus (Audio & UI)
 ```cpp
-ThreadPool pool(4); // 4 Background Threads
+#include <event_bus.h>
+using namespace FrameZero;
 
-// Offload heavy A* Pathfinding so the 60fps network loop never drops a frame!
-pool.enqueue([&]() {
-    std::vector<Vector2> path;
-    pathfinder.findPath(spatialGrid, startPos, targetPos, path);
-    applyPathToEntity(path);
+EventBus eventBus;
+
+// 1. Audio System (Non-deterministic) subscribes to hits
+eventBus.subscribe<HitEvent>([](const HitEvent& e) {
+    if (e.damage >= 50) PlaySound(heavyHitSound);
 });
+
+// 2. Core Simulation (Deterministic) broadcasts the hit
+if (attackConnects) {
+    HitEvent e;
+    e.damage = 60;
+    eventBus.publish(e);
+}
 ```
 
----
-
-## 🛠️ Built-in Debug Tools
-FrameZero ships with developer tools to maintain your sanity:
-* **Replay Viewer** (`FrameZeroReplayViewer`): Load `.frz` replay files and scrub through them frame-by-frame.
-* **Desync Finder** (`FrameZeroDesyncFinder`): Pass in Player 1 and Player 2's replay files. The tool instantly scrubs the FNV-1a checksums and prints the exact frame, input state, and variables that caused the butterfly effect desync!
+## 📚 Documentation
+Check the `docs/` folder for comprehensive setup, architecture, and advanced feature guides!
 
 ## 📜 License
 FrameZero is released under the **MIT License**. Use it for game jams, commercial projects, or modifications without restrictions.
