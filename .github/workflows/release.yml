@@ -1,0 +1,59 @@
+name: Build and Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: framezero-linux-x64
+            ext: .a
+          - os: windows-latest
+            artifact_name: framezero-windows-x64
+            ext: .lib
+          - os: macos-latest
+            artifact_name: framezero-macos-arm64
+            ext: .a
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build Library
+      run: cmake --build build --config Release --target framezero
+
+    - name: Package Artifacts
+      shell: bash
+      run: |
+        mkdir -p package/include
+        mkdir -p package/lib
+        
+        # Copy headers
+        cp -r include/* package/include/
+        
+        # Copy compiled static library
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          cp build/Release/framezero${{ matrix.ext }} package/lib/
+        else
+          cp build/libframezero${{ matrix.ext }} package/lib/
+        fi
+        
+        # Zip the package
+        cd package
+        zip -r ../${{ matrix.artifact_name }}.zip ./*
+
+    - name: Upload Artifact to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ matrix.artifact_name }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
