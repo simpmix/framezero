@@ -6,6 +6,7 @@
 namespace FrameZero {
 
 #pragma pack(push, 1)
+// @FrameZeroComponent
 struct PhysicsBody3D {
     uint32_t id;
     bool active;
