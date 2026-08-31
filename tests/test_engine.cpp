@@ -104,7 +104,7 @@ void test_physics_body() {
     TEST_ASSERT(body.position.y.toDouble() < 0.0, "Y position affected by gravity");
     
     // Serialization test
-    uint8_t buffer[64];
+    uint8_t buffer[256]; // Increased from 64 to 256 to support angular physics expansion
     body.serialize(buffer);
     
     PhysicsBody body2;
