@@ -18,23 +18,17 @@ public:
     
     StateSerializer() : dataSize(0) {}
     
-    // Serialize all bodies to buffer
+    // Serialize all bodies to buffer in a single contiguous block (Insanely fast O(1))
     void serialize(PhysicsBody* bodies, int count) {
         count = (count > MAX_BODIES) ? MAX_BODIES : count;
         dataSize = count * BODY_SIZE;
-        
-        for (int i = 0; i < count; i++) {
-            bodies[i].serialize(buffer + i * BODY_SIZE);
-        }
+        std::memcpy(buffer, bodies, dataSize);
     }
     
-    // Deserialize back to bodies
+    // Deserialize back to bodies in a single contiguous block (Insanely fast O(1))
     void deserialize(PhysicsBody* bodies, int count) {
         count = (count > MAX_BODIES) ? MAX_BODIES : count;
-        
-        for (int i = 0; i < count; i++) {
-            bodies[i].deserialize(buffer + i * BODY_SIZE);
-        }
+        std::memcpy(bodies, buffer, count * BODY_SIZE);
     }
     
     // Get current serialized data size

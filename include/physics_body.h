@@ -1,63 +1,115 @@
-#ifndef FRAMEZERO_PHYSICS_BODY_H
-#define FRAMEZERO_PHYSICS_BODY_H
-
+#pragma once
 #include "vector2.h"
 #include "input.h"
 #include <cstring>
 
 namespace FrameZero {
 
-enum BodyType { DYNAMIC, STATIC, KINEMATIC };
+enum BodyType : uint8_t { DYNAMIC, STATIC, KINEMATIC };
 
+#pragma pack(push, 1)
 struct PhysicsBody {
+    uint32_t id;
+    bool active;
+    uint8_t _padding[3]; // Explicit padding for 4-byte alignment
+    
     Vector2 position;
     Vector2 velocity;
     Vector2 acceleration;
     Vector2 size;  // Half-extents for AABB
+    
     Fixed mass;
     Fixed invMass;
     
-    // Collision Filtering (Bitmasks)
-    uint32_t collisionCategory = 0x00000001; // What am I? (Default: Layer 1)
-    uint32_t collisionMask     = 0xFFFFFFFF; // What do I collide with? (Default: Everything)
+    // Angular Physics
+    Fixed rotation;        // Radians
+    Fixed angularVelocity;
+    Fixed torque;
+    Fixed inertia;
+    Fixed invInertia;
+    
+    // Collision Filtering
+    uint32_t collisionCategory; 
+    uint32_t collisionMask;     
     
     Fixed restitution;
     Fixed friction;
     BodyType type;
-    uint32_t id;
-    bool active;
-    int freezeFrames;
+    uint8_t _padding2[3]; // Alignment
     
-    // For serialization state
+    int freezeFrames;
     uint32_t stateVersion;
     
-    PhysicsBody() 
-        : position(0, 0), velocity(0, 0), acceleration(0, 0)
-        , size(Fixed::fromInt(1), Fixed::fromInt(1)), mass(Fixed::fromInt(1)), invMass(Fixed::fromInt(1))
-        , restitution(Fixed(0.5)), friction(Fixed(0.3))
-        , type(DYNAMIC), id(0), active(true), freezeFrames(0), stateVersion(0) {}
+    PhysicsBody() {
+        // Zero out EVERYTHING including padding to ensure deterministic FNV-1a hashing
+        std::memset(this, 0, sizeof(PhysicsBody));
+        
+        size = Vector2(Fixed::fromInt(1), Fixed::fromInt(1));
+        mass = Fixed::fromInt(1);
+        invMass = Fixed::fromInt(1);
+        
+        inertia = Fixed::fromInt(1);
+        invInertia = Fixed::fromInt(1);
+        
+        restitution = Fixed(0.5);
+        friction = Fixed(0.3);
+        type = DYNAMIC;
+        active = true;
+        
+        collisionCategory = 0x00000001;
+        collisionMask = 0xFFFFFFFF;
+    }
         
     void setStatic() {
         type = STATIC;
         mass = Fixed(0);
         invMass = Fixed(0);
+        inertia = Fixed(0);
+        invInertia = Fixed(0);
         velocity = Vector2(0, 0);
+        angularVelocity = Fixed(0);
     }
     
     void setMass(Fixed newMass) {
         mass = newMass;
         if (mass.raw > 0) invMass = Fixed::fromInt(1) / mass;
         else invMass = Fixed(0);
+        
+        // Very basic inertia tensor for a 2D box: (m * (w^2 + h^2)) / 12
+        if (mass.raw > 0) {
+            Fixed w = size.x * Fixed(2);
+            Fixed h = size.y * Fixed(2);
+            inertia = (mass * ((w * w) + (h * h))) / Fixed(12);
+            invInertia = Fixed(1) / inertia;
+        } else {
+            inertia = Fixed(0);
+            invInertia = Fixed(0);
+        }
     }
     
     void applyForce(const Vector2& force) {
         if (type == STATIC || mass.raw == 0) return;
-        acceleration += force / mass;
+        acceleration += force * invMass;
+    }
+    
+    void applyForceAtPoint(const Vector2& force, const Vector2& point) {
+        if (type == STATIC || mass.raw == 0) return;
+        acceleration += force * invMass;
+        
+        Vector2 r = point - position;
+        // 2D Cross product: r.x * f.y - r.y * f.x
+        Fixed cross = (r.x * force.y) - (r.y * force.x);
+        torque += cross;
     }
     
     void applyImpulse(const Vector2& impulse) {
         if (type == STATIC || mass.raw == 0) return;
-        velocity += impulse / mass;
+        velocity += impulse * invMass;
+    }
+    
+    void applyAngularImpulse(Fixed impulse) {
+        if (type == STATIC || mass.raw == 0) return;
+        angularVelocity += impulse * invInertia;
     }
     
     void integrate(Fixed dt) {
@@ -65,73 +117,41 @@ struct PhysicsBody {
         
         if (freezeFrames > 0) {
             freezeFrames--;
-            // Still clear acceleration so accumulated forces during hitstop don't carry over massively
             acceleration = Vector2(0, 0);
+            torque = Fixed(0);
             return;
         }
         
-        // Semi-implicit Euler
+        // Linear integration
         velocity += acceleration * dt;
         position += velocity * dt;
-        
-        // Reset acceleration
         acceleration = Vector2(0, 0);
+        
+        // Angular integration
+        angularVelocity += torque * invInertia * dt;
+        rotation += angularVelocity * dt;
+        torque = Fixed(0);
         
         stateVersion++;
     }
     
-    // Serialize body state to bytes (for rollback snapshots)
+    // Insanely fast O(1) serialization!
     void serialize(uint8_t* buffer) const {
-        memcpy(buffer, &id, 4);
-        buffer[4] = active ? 1 : 0;
-        memcpy(buffer + 5, &position.x.raw, 4);
-        memcpy(buffer + 9, &position.y.raw, 4);
-        memcpy(buffer + 13, &velocity.x.raw, 4);
-        memcpy(buffer + 17, &velocity.y.raw, 4);
-        memcpy(buffer + 21, &acceleration.x.raw, 4);
-        memcpy(buffer + 25, &acceleration.y.raw, 4);
-        memcpy(buffer + 29, &size.x.raw, 4);
-        memcpy(buffer + 33, &size.y.raw, 4);
-        memcpy(buffer + 37, &mass.raw, 4);
-        memcpy(buffer + 41, &freezeFrames, 4);
-        memcpy(buffer + 45, &restitution.raw, 4);
-        memcpy(buffer + 49, &friction.raw, 4);
-        buffer[53] = static_cast<uint8_t>(type);
-        memcpy(buffer + 54, &collisionCategory, 4);
-        memcpy(buffer + 58, &collisionMask, 4);
+        std::memcpy(buffer, this, sizeof(PhysicsBody));
     }
     
-    // Deserialize from bytes
+    // Insanely fast O(1) deserialization!
     void deserialize(const uint8_t* buffer) {
-        memcpy(&id, buffer, 4);
-        active = buffer[4] != 0;
-        memcpy(&position.x.raw, buffer + 5, 4);
-        memcpy(&position.y.raw, buffer + 9, 4);
-        memcpy(&velocity.x.raw, buffer + 13, 4);
-        memcpy(&velocity.y.raw, buffer + 17, 4);
-        memcpy(&acceleration.x.raw, buffer + 21, 4);
-        memcpy(&acceleration.y.raw, buffer + 25, 4);
-        memcpy(&size.x.raw, buffer + 29, 4);
-        memcpy(&size.y.raw, buffer + 33, 4);
-        memcpy(&mass.raw, buffer + 37, 4);
-        invMass = (mass.raw == 0) ? Fixed(0) : Fixed(1) / mass;
-        memcpy(&freezeFrames, buffer + 41, 4);
-        memcpy(&restitution.raw, buffer + 45, 4);
-        memcpy(&friction.raw, buffer + 49, 4);
-        type = static_cast<BodyType>(buffer[53]);
-        memcpy(&collisionCategory, buffer + 54, 4);
-        memcpy(&collisionMask, buffer + 58, 4);
+        std::memcpy(this, buffer, sizeof(PhysicsBody));
     }
     
     static constexpr size_t getSize() {
-        return 62; // Total size
+        return sizeof(PhysicsBody);
     }
 
-    // Get AABB bounds
     Vector2 getMin() const { return Vector2(position.x - size.x, position.y - size.y); }
     Vector2 getMax() const { return Vector2(position.x + size.x, position.y + size.y); }
 };
+#pragma pack(pop)
 
 } // namespace FrameZero
-
-#endif // FRAMEZERO_PHYSICS_BODY_H
