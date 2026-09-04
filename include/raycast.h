@@ -34,6 +34,9 @@ public:
             if (!bodies[i].active) continue;
 
             // Simple Ray vs AABB intersection using slabs method (deterministic)
+            Vector2 minB = bodies[i].getMin();
+            Vector2 maxB = bodies[i].getMax();
+
             Fixed tmin = Fixed(0);
             Fixed tmax = maxDistance;
             Vector2 normal(0, 0);
@@ -41,8 +44,8 @@ public:
             // X Axis
             if (direction.x != Fixed(0)) {
                 Fixed invDirX = Fixed(1) / direction.x;
-                Fixed t1 = (bodies[i].position.x - origin.x) * invDirX;
-                Fixed t2 = ((bodies[i].position.x + bodies[i].size.x) - origin.x) * invDirX;
+                Fixed t1 = (minB.x - origin.x) * invDirX;
+                Fixed t2 = (maxB.x - origin.x) * invDirX;
 
                 Fixed signX = (invDirX < Fixed(0)) ? Fixed(-1) : Fixed(1);
 
@@ -53,15 +56,15 @@ public:
                     normal = Vector2(Fixed(-1) * signX, Fixed(0));
                 }
                 if (t2 < tmax) tmax = t2;
-            } else if (origin.x < bodies[i].position.x || origin.x > bodies[i].position.x + bodies[i].size.x) {
+            } else if (origin.x < minB.x || origin.x > maxB.x) {
                 continue; // Ray is parallel and outside the box
             }
 
             // Y Axis
             if (direction.y != Fixed(0)) {
                 Fixed invDirY = Fixed(1) / direction.y;
-                Fixed t1 = (bodies[i].position.y - origin.y) * invDirY;
-                Fixed t2 = ((bodies[i].position.y + bodies[i].size.y) - origin.y) * invDirY;
+                Fixed t1 = (minB.y - origin.y) * invDirY;
+                Fixed t2 = (maxB.y - origin.y) * invDirY;
 
                 Fixed signY = (invDirY < Fixed(0)) ? Fixed(-1) : Fixed(1);
 
@@ -72,7 +75,7 @@ public:
                     normal = Vector2(Fixed(0), Fixed(-1) * signY);
                 }
                 if (t2 < tmax) tmax = t2;
-            } else if (origin.y < bodies[i].position.y || origin.y > bodies[i].position.y + bodies[i].size.y) {
+            } else if (origin.y < minB.y || origin.y > maxB.y) {
                 continue;
             }
 

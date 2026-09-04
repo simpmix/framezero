@@ -7,6 +7,18 @@
 
 namespace FrameZero {
 
+// Primary template for serializing arbitrary ECS components or state objects
+template<typename T>
+struct Serializer {
+    static constexpr size_t getSize() { return sizeof(T); }
+    static void serialize(const T& obj, uint8_t* buffer) {
+        std::memcpy(buffer, &obj, sizeof(T));
+    }
+    static void deserialize(T& obj, const uint8_t* buffer) {
+        std::memcpy(&obj, buffer, sizeof(T));
+    }
+};
+
 // Fast state serialization for rollback snapshots
 class StateSerializer {
 public:

@@ -127,6 +127,7 @@ public:
     
     // O(1) query for any unit to instantly get its optimal direction vector
     Vector2 getDirection(Vector2 worldPos) const {
+        if (worldPos.x < Fixed(0) || worldPos.y < Fixed(0)) return Vector2(0, 0);
         int x = (worldPos.x / cellSize).toInt();
         int y = (worldPos.y / cellSize).toInt();
         

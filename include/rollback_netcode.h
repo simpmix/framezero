@@ -23,7 +23,7 @@ public:
         Input predictedRemote;
         bool hasRemoteInput;
         uint8_t stateSnapshot[StateSerializer::MAX_BODIES * StateSerializer::BODY_SIZE];
-        uint8_t ecsSnapshot[8192]; // Up to 8KB of ECS data per frame
+        std::vector<uint8_t> ecsSnapshot; // Dynamically sized ECS snapshot buffer - zero buffer overflow risk
         
         FrameState() : hasRemoteInput(false) {}
     };
@@ -69,8 +69,12 @@ public:
         memcpy(frameHistory[idx].stateSnapshot, serializer.buffer, serializer.getSize());
         
         if (ecsRegistry) {
+            size_t reqSize = ecsRegistry->getSerializationSize();
+            if (frameHistory[idx].ecsSnapshot.size() < reqSize) {
+                frameHistory[idx].ecsSnapshot.resize(reqSize);
+            }
             size_t offset = 0;
-            ecsRegistry->serialize(frameHistory[idx].ecsSnapshot, offset);
+            ecsRegistry->serialize(frameHistory[idx].ecsSnapshot.data(), offset);
         }
     }
     
@@ -80,8 +84,10 @@ public:
         serializer.deserialize(bodies, bodyCount);
         
         if (ecsRegistry) {
-            size_t offset = 0;
-            ecsRegistry->deserialize(frameHistory[idx].ecsSnapshot, offset);
+            if (!frameHistory[idx].ecsSnapshot.empty()) {
+                size_t offset = 0;
+                ecsRegistry->deserialize(frameHistory[idx].ecsSnapshot.data(), offset);
+            }
         }
     }
     

@@ -10,6 +10,11 @@ struct Quaternion {
     Quaternion() : x(0), y(0), z(0), w(Fixed::fromInt(1)) {}
     Quaternion(Fixed x, Fixed y, Fixed z, Fixed w) : x(x), y(y), z(z), w(w) {}
 
+    static Quaternion identity() { return Quaternion(Fixed(0), Fixed(0), Fixed(0), Fixed::fromInt(1)); }
+
+    bool operator==(const Quaternion& o) const { return x == o.x && y == o.y && z == o.z && w == o.w; }
+    bool operator!=(const Quaternion& o) const { return !(*this == o); }
+
     // Quaternion multiplication (combining rotations)
     Quaternion operator*(const Quaternion& q) const {
         return Quaternion(

@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <chrono>
+#include <cstring>
 #include "network_socket.h"
 
 namespace FrameZero {

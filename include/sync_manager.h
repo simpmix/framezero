@@ -22,7 +22,11 @@ private:
     std::chrono::steady_clock::time_point syncStartTime;
 
 public:
-    SyncManager() : currentState(IDLE), localPingCount(0), remotePongCount(0), averageRTT(0) {}
+    SyncManager() : currentState(IDLE), localPingCount(0), remotePongCount(0), averageRTT(0) {
+        std::memset(pings, 0, sizeof(pings));
+    }
+
+    State getState() const { return currentState; }
 
     void startSync() {
         currentState = SYNCING;

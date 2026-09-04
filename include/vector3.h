@@ -1,6 +1,5 @@
 #pragma once
 #include "fixed_point.h"
-#include <cmath>
 
 namespace FrameZero {
 
@@ -18,11 +17,22 @@ struct Vector3 {
     Vector3 operator*(Fixed scalar) const { return Vector3(x * scalar, y * scalar, z * scalar); }
     Vector3 operator/(Fixed scalar) const { return Vector3(x / scalar, y / scalar, z / scalar); }
 
+    bool operator==(const Vector3& other) const { return x == other.x && y == other.y && z == other.z; }
+    bool operator!=(const Vector3& other) const { return !(*this == other); }
+
     Vector3& operator+=(const Vector3& other) {
         x = x + other.x;
         y = y + other.y;
         z = z + other.z;
         return *this;
+    }
+
+    Fixed dot(const Vector3& other) const {
+        return (x * other.x) + (y * other.y) + (z * other.z);
+    }
+
+    Vector3 cross(const Vector3& other) const {
+        return cross(*this, other);
     }
 
     static Fixed dot(const Vector3& a, const Vector3& b) {
@@ -37,8 +47,6 @@ struct Vector3 {
         );
     }
 
-    // Since we don't have a fixed-point sqrt yet, we use a basic approximation or leave squared
-    // For a true AAA 3D engine, we need Fixed::sqrt()
     Fixed lengthSquared() const {
         return dot(*this, *this);
     }

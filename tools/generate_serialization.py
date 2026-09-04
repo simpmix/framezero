@@ -2,60 +2,141 @@ import os
 import re
 import sys
 
-# Regex to find structs marked with // @FrameZeroComponent
-COMPONENT_REGEX = re.compile(r'//\s*@FrameZeroComponent\s+struct\s+(\w+)\s*\{([^}]+)\};', re.MULTILINE)
-# Regex to find variable declarations (e.g. "int hp;", "Fixed speed;")
-VAR_REGEX = re.compile(r'^\s*([A-Za-z0-9_:]+)\s+([A-Za-z0-9_]+)\s*;', re.MULTILINE)
+def extract_structs(content):
+    """
+    Finds structs tagged with @FrameZeroComponent using balanced brace parsing.
+    Returns list of (struct_name, [(type, name), ...])
+    """
+    results = []
+    marker = "@FrameZeroComponent"
+    idx = 0
+    
+    while True:
+        tag_pos = content.find(marker, idx)
+        if tag_pos == -1:
+            break
+            
+        # Find 'struct' after tag
+        struct_pos = content.find("struct", tag_pos)
+        if struct_pos == -1 or struct_pos - tag_pos > 200:
+            idx = tag_pos + len(marker)
+            continue
+            
+        # Match struct name and opening brace
+        header_match = re.search(r'struct\s+([A-Za-z0-9_]+)\s*\{', content[struct_pos:])
+        if not header_match:
+            idx = struct_pos + 6
+            continue
+            
+        struct_name = header_match.group(1)
+        brace_start = struct_pos + header_match.end() - 1
+        
+        # Balance braces to find end of struct
+        depth = 0
+        brace_end = -1
+        i = brace_start
+        while i < len(content):
+            c = content[i]
+            if c == '{':
+                depth += 1
+            elif c == '}':
+                depth -= 1
+                if depth == 0:
+                    brace_end = i
+                    break
+            i += 1
+            
+        if brace_end == -1:
+            idx = struct_pos + 6
+            continue
+            
+        body = content[brace_start + 1:brace_end]
+        
+        # Remove inner blocks { ... } (e.g. methods and constructors)
+        cleaned_body = []
+        inner_depth = 0
+        for ch in body:
+            if ch == '{':
+                inner_depth += 1
+            elif ch == '}':
+                inner_depth -= 1
+            elif inner_depth == 0:
+                cleaned_body.append(ch)
+        body_no_blocks = "".join(cleaned_body)
+        
+        # Remove C and C++ comments
+        body_no_comments = re.sub(r'//.*?$', '', body_no_blocks, flags=re.MULTILINE)
+        body_no_comments = re.sub(r'/\*.*?\*/', '', body_no_comments, flags=re.DOTALL)
+        
+        # Parse member variable declarations
+        variables = []
+        for line in body_no_comments.split(';'):
+            line = line.strip()
+            if not line:
+                continue
+            # Skip functions, typedefs, using, static, templates, constructors
+            if '(' in line or ')' in line or ':' in line or 'typedef' in line or 'using' in line:
+                continue
+            tokens = line.split()
+            if len(tokens) >= 2:
+                # Handle types like unsigned int, uint32_t, Fixed, etc.
+                v_name = tokens[-1]
+                v_type = " ".join(tokens[:-1])
+                # Skip arrays or invalid identifiers
+                if '[' in v_name or '*' in v_name:
+                    continue
+                if re.match(r'^[A-Za-z0-9_]+$', v_name):
+                    variables.append((v_type, v_name))
+                    
+        if variables:
+            results.append((struct_name, variables))
+            
+        idx = brace_end + 1
+        
+    return results
 
 def parse_and_generate(directory):
-    print(f"Scanning directory {directory} for FrameZero components...")
+    print(f"Scanning directory '{directory}' for FrameZero components...")
     
     components = []
     
-    # 1. Scan all headers
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith('.h') or file.endswith('.hpp'):
                 filepath = os.path.join(root, file)
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except Exception as e:
+                    continue
                     
-                    for match in COMPONENT_REGEX.finditer(content):
-                        struct_name = match.group(1)
-                        body = match.group(2)
-                        
-                        variables = []
-                        for v_match in VAR_REGEX.finditer(body):
-                            v_type = v_match.group(1)
-                            v_name = v_match.group(2)
-                            variables.append((v_type, v_name))
-                            
-                        if variables:
-                            components.append((struct_name, variables))
-                            print(f"Found component: {struct_name} with {len(variables)} variables.")
+                structs = extract_structs(content)
+                for s_name, vars in structs:
+                    components.append((s_name, vars, file))
+                    print(f"  [+] Found component '{s_name}' in {file} with {len(vars)} members.")
 
     if not components:
         print("No @FrameZeroComponent structs found.")
         return
 
-    # 2. Generate the serialization header
     out_path = os.path.join(directory, 'generated_serializers.h')
     with open(out_path, 'w', encoding='utf-8') as f:
-        f.write("// AUTO-GENERATED BY framezero_parser.py - DO NOT EDIT\n")
+        f.write("// AUTO-GENERATED BY generate_serialization.py - DO NOT EDIT\n")
         f.write("#pragma once\n")
         f.write("#include <cstring>\n")
-        f.write("#include <cstdint>\n\n")
+        f.write("#include <cstdint>\n")
+        f.write("#include \"state_serialization.h\"\n\n")
         f.write("namespace FrameZero {\n\n")
         
-        for struct_name, variables in components:
+        for struct_name, variables, source_file in components:
+            f.write(f"// Specialization for {struct_name} (from {source_file})\n")
             f.write(f"template<>\n")
             f.write(f"struct Serializer<{struct_name}> {{\n")
             
             # getSize()
             f.write(f"    static constexpr size_t getSize() {{\n")
-            f.write(f"        return ")
             sizes = [f"sizeof({v_type})" for v_type, v_name in variables]
-            f.write(" + ".join(sizes) + ";\n")
+            f.write("        return " + " + ".join(sizes) + ";\n")
             f.write(f"    }}\n\n")
             
             # serialize()
@@ -77,8 +158,8 @@ def parse_and_generate(directory):
             
         f.write("} // namespace FrameZero\n")
         
-    print(f"Successfully generated {out_path}!")
+    print(f"\nSuccessfully generated '{out_path}' with {len(components)} serializer(s)!")
 
 if __name__ == '__main__':
-    target_dir = sys.argv[1] if len(sys.argv) > 1 else '.'
+    target_dir = sys.argv[1] if len(sys.argv) > 1 else 'include'
     parse_and_generate(target_dir)

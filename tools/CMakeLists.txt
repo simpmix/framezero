@@ -6,4 +6,4 @@ add_executable(FrameZeroDesyncFinder desync_finder.cpp)
 target_link_libraries(FrameZeroDesyncFinder PRIVATE framezero)
 
 # If we want to install tools
-install(TARGETS FrameZeroReplayViewer RUNTIME DESTINATION bin)
+install(TARGETS FrameZeroReplayViewer FrameZeroDesyncFinder RUNTIME DESTINATION bin)

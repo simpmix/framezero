@@ -57,6 +57,22 @@ struct PhysicsBody3D {
         collisionMask = 0xFFFFFFFF;
     }
     
+    void setMass(Fixed m) {
+        mass = m;
+        invMass = (m.raw != 0) ? (Fixed(1) / m) : Fixed(0);
+    }
+
+    Vector3 getMin() const { return Vector3(position.x - size.x, position.y - size.y, position.z - size.z); }
+    Vector3 getMax() const { return Vector3(position.x + size.x, position.y + size.y, position.z + size.z); }
+
+    static bool checkAABB3D(const PhysicsBody3D& a, const PhysicsBody3D& b) {
+        Vector3 minA = a.getMin(), maxA = a.getMax();
+        Vector3 minB = b.getMin(), maxB = b.getMax();
+        return (minA.x <= maxB.x && maxA.x >= minB.x) &&
+               (minA.y <= maxB.y && maxA.y >= minB.y) &&
+               (minA.z <= maxB.z && maxA.z >= minB.z);
+    }
+
     void applyForce(const Vector3& force) {
         if (mass.raw == 0) return;
         acceleration += force * invMass;

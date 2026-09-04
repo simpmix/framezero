@@ -8,7 +8,7 @@
 namespace FrameZero {
 
 using Entity = uint32_t;
-constexpr Entity MAX_ENTITIES = 2048; // Expanded from 256 for larger games!
+constexpr Entity MAX_ENTITIES = 512; // Tuned for deterministic cache locality and rollback speed
 constexpr Entity NULL_ENTITY = 0xFFFFFFFF;
 
 // Base class for arrays to allow polymorphism during serialization
@@ -172,6 +172,10 @@ public:
     
     template<typename T>
     bool hasComponent(Entity entity) {
+        int typeId = getComponentTypeId<T>();
+        if (typeId >= MAX_COMPONENTS || !componentArrays[typeId]) {
+            return false;
+        }
         return getComponentArray<T>()->has(entity);
     }
 
@@ -227,6 +231,9 @@ private:
     template<typename T>
     ComponentArray<T>* getComponentArray() {
         int typeId = getComponentTypeId<T>();
+        if (typeId < MAX_COMPONENTS && !componentArrays[typeId]) {
+            registerComponent<T>();
+        }
         return static_cast<ComponentArray<T>*>(componentArrays[typeId]);
     }
 };

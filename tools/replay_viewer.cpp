@@ -3,6 +3,7 @@
 #define NOUSER
 #endif
 
+#define FRAMEZERO_ENABLE_RAYLIB
 #include <raylib.h>
 #include "FrameZero.h"
 #include <iostream>

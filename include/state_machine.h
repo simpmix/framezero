@@ -111,17 +111,23 @@ public:
         }
     }
     
-    // O(1) Contiguous Block Serialization
+    // O(1) Contiguous Block Serialization (excludes pointer addresses for network determinism)
     void serialize(uint8_t* buffer) const {
-        std::memcpy(buffer, this, sizeof(StateMachineVM));
+        size_t offset = 0;
+        std::memcpy(buffer + offset, &currentStateId, sizeof(currentStateId)); offset += sizeof(currentStateId);
+        std::memcpy(buffer + offset, &programCounter, sizeof(programCounter)); offset += sizeof(programCounter);
+        std::memcpy(buffer + offset, &waitTimer, sizeof(waitTimer)); offset += sizeof(waitTimer);
     }
     
     void deserialize(const uint8_t* buffer) {
-        std::memcpy(this, buffer, sizeof(StateMachineVM));
+        size_t offset = 0;
+        std::memcpy(&currentStateId, buffer + offset, sizeof(currentStateId)); offset += sizeof(currentStateId);
+        std::memcpy(&programCounter, buffer + offset, sizeof(programCounter)); offset += sizeof(programCounter);
+        std::memcpy(&waitTimer, buffer + offset, sizeof(waitTimer)); offset += sizeof(waitTimer);
     }
     
     static constexpr size_t getSize() {
-        return sizeof(StateMachineVM);
+        return sizeof(int) * 3;
     }
 };
 
