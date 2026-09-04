@@ -13,9 +13,9 @@ struct Event {
 
 // Example specific events
 struct HitEvent : public Event {
-    int attackerId;
-    int defenderId;
-    int damage;
+    int attackerId = 0;
+    int defenderId = 0;
+    int damage = 0;
 };
 
 struct RollbackTriggeredEvent : public Event {

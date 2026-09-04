@@ -1,20 +1,10 @@
 #pragma once
 #include "fixed_point.h"
 #include "vector2.h"
+#include "particles.h"
 #include <cstring>
 
 namespace FrameZero {
-
-struct Particle {
-    Vector2 position;
-    Vector2 velocity;
-    Fixed lifetime;     // In frames
-    Fixed maxLifetime;  // In frames
-    uint32_t colorID;   // Mapped to rendering colors
-    bool active;
-    
-    Particle() : position(0,0), velocity(0,0), lifetime(0), maxLifetime(0), colorID(0), active(false) {}
-};
 
 // Deterministic Visual Effects system that safely rolls back during network resimulations
 class VFXSystem {

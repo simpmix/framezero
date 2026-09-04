@@ -8,9 +8,12 @@ namespace FrameZero {
 struct Particle {
     Vector2 position;
     Vector2 velocity;
-    Fixed lifetime;     // Current age
+    Fixed lifetime;     // Current age / frames
     Fixed maxLifetime;  // When it dies
-    bool active = false;
+    uint32_t colorID;   // Mapped to rendering colors
+    bool active;
+
+    Particle() : position(0, 0), velocity(0, 0), lifetime(0), maxLifetime(0), colorID(0), active(false) {}
 };
 
 // A highly optimized, deterministic particle emitter that safely rolls back.
