@@ -6,18 +6,7 @@
 #include <fstream>
 #include <string>
 
-#include "fixed_point.h"
-#include "vector2.h"
-#include "input.h"
-#include "physics_body.h"
-#include "collision.h"
-#include "state_serialization.h"
-#include "replay_system.h"
-#include "pathfinding.h"
-#include "delta_compression.h"
-#include "rollback_netcode.h"
-#include "player_controller.h"
-#include "interpolation_renderer.h"
+#include "FrameZero.h"
 
 using namespace FrameZero;
 
@@ -496,6 +485,260 @@ void test_ecs_serialization() {
     TEST_ASSERT(ecs.getComponent<TestECSComponent>(e1).timer == Fixed(5.0), "ECS Rollback Fixed point");
 }
 
+void test_vector3_and_quaternion() {
+    std::cout << "\n=== Testing Vector3 & Quaternion (3D Math) ===" << std::endl;
+    Vector3 v1(1.0, 2.0, 3.0);
+    Vector3 v2(4.0, 5.0, 6.0);
+    Vector3 sum = v1 + v2;
+    TEST_ASSERT(sum == Vector3(5.0, 7.0, 9.0), "Vector3 addition & equality");
+
+    Fixed dot = v1.dot(v2);
+    TEST_ASSERT(std::abs(dot.toDouble() - 32.0) < 0.01, "Vector3 dot product");
+
+    Vector3 cross = Vector3::cross(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0));
+    TEST_ASSERT(cross == Vector3(0.0, 0.0, 1.0), "Vector3 cross product");
+
+    Vector3 v(3.0, 0.0, 4.0);
+    TEST_ASSERT(std::abs(v.length().toDouble() - 5.0) < 0.01, "Vector3 length (Fixed::sqrt)");
+    v.normalize();
+    TEST_ASSERT(std::abs(v.length().toDouble() - 1.0) < 0.05, "Vector3 normalize");
+
+    Quaternion qId = Quaternion::identity();
+    TEST_ASSERT(qId.w == Fixed(1) && qId.x == Fixed(0), "Quaternion identity");
+
+    Quaternion rotZ90 = Quaternion::fromAxisAngle(Vector3(0.0, 0.0, 1.0), Fixed::pi() / Fixed(2));
+    Vector3 rotated = rotZ90.rotateVector(Vector3(1.0, 0.0, 0.0));
+    TEST_ASSERT(std::abs(rotated.x.toDouble() - 0.0) < 0.05 && std::abs(rotated.y.toDouble() - 1.0) < 0.05, "Quaternion vector rotation 90 deg");
+}
+
+void test_physics_body_3d() {
+    std::cout << "\n=== Testing PhysicsBody3D ===" << std::endl;
+    PhysicsBody3D body;
+    body.position = Vector3(0.0, 10.0, 0.0);
+    body.setMass(Fixed(2.0));
+    body.applyForce(Vector3(10.0, -19.6, 4.0));
+    body.integrate(Fixed(0.1));
+
+    TEST_ASSERT(body.position.x > Fixed(0), "PhysicsBody3D linear force integration X");
+    TEST_ASSERT(body.position.y < Fixed(10.0), "PhysicsBody3D linear force integration Y");
+
+    PhysicsBody3D other;
+    other.position = Vector3(0.5, 9.8, 0.0);
+    TEST_ASSERT(PhysicsBody3D::checkAABB3D(body, other), "PhysicsBody3D AABB overlap");
+
+    other.position = Vector3(50.0, 50.0, 50.0);
+    TEST_ASSERT(!PhysicsBody3D::checkAABB3D(body, other), "PhysicsBody3D AABB separated");
+
+    uint8_t buf[sizeof(PhysicsBody3D)];
+    body.serialize(buf);
+    PhysicsBody3D restored;
+    restored.deserialize(buf);
+    TEST_ASSERT(body.position == restored.position, "PhysicsBody3D rollback serialize/deserialize");
+}
+
+void test_polygon_collider_sat() {
+    std::cout << "\n=== Testing Convex Polygon SAT Collider ===" << std::endl;
+    Polygon poly1;
+    poly1.addVertex(Vector2(0.0, 0.0));
+    poly1.addVertex(Vector2(2.0, 0.0));
+    poly1.addVertex(Vector2(1.0, 2.0)); // Triangle
+
+    Polygon poly2;
+    poly2.addVertex(Vector2(1.0, 1.0));
+    poly2.addVertex(Vector2(3.0, 1.0));
+    poly2.addVertex(Vector2(2.0, 3.0)); // Overlapping triangle
+
+    CollisionContact contact;
+    bool overlap = PolygonCollider::checkOverlap(poly1, poly2, &contact);
+    TEST_ASSERT(overlap, "SAT detected overlapping convex polygons");
+    TEST_ASSERT(contact.penetration > Fixed(0), "SAT contact penetration depth calculated");
+
+    Polygon poly3;
+    poly3.addVertex(Vector2(10.0, 10.0));
+    poly3.addVertex(Vector2(12.0, 10.0));
+    poly3.addVertex(Vector2(11.0, 12.0)); // Distant triangle
+    TEST_ASSERT(!PolygonCollider::checkOverlap(poly1, poly3), "SAT separated polygons correct");
+}
+
+void test_quadtree() {
+    std::cout << "\n=== Testing QuadTree Broadphase ===" << std::endl;
+    QuadTree qt(0, Vector2(-100.0, -100.0), Vector2(100.0, 100.0));
+    PhysicsBody b1, b2, b3;
+    b1.position = Vector2(5.0, 5.0); b1.size = Vector2(1.0, 1.0);
+    b2.position = Vector2(6.0, 6.0); b2.size = Vector2(1.0, 1.0);
+    b3.position = Vector2(-50.0, -50.0); b3.size = Vector2(1.0, 1.0);
+
+    qt.insert(&b1);
+    qt.insert(&b2);
+    qt.insert(&b3);
+
+    std::vector<PhysicsBody*> candidates;
+    qt.retrieve(candidates, &b1);
+    TEST_ASSERT(!candidates.empty(), "QuadTree retrieved candidates for nearby body");
+    qt.clear();
+}
+
+void test_flow_field() {
+    std::cout << "\n=== Testing Deterministic Flow Field Pathfinding ===" << std::endl;
+    FlowField field(16, 16, Fixed(1.0));
+    field.setObstacle(5, 5, true);
+    field.generate(0, 0); // Target at origin
+
+    Vector2 dir = field.getDirection(Vector2(3.0, 3.0));
+    TEST_ASSERT(dir.x <= Fixed(0) && dir.y <= Fixed(0), "Flow field direction vectors flow towards target");
+}
+
+void test_state_machine_vm() {
+    std::cout << "\n=== Testing Deterministic Character State Machine VM ===" << std::endl;
+    PhysicsBody body;
+    body.position = Vector2(0.0, 0.0);
+    body.velocity = Vector2(0.0, 0.0);
+
+    StateMachineVM vm;
+    vm.bind(&body);
+
+    std::unordered_map<int, CharacterState> states;
+    CharacterState attackState;
+    attackState.id = 1;
+    Instruction i1{Opcode::SET_VELOCITY_X, Fixed(10.0).raw};
+    Instruction i2{Opcode::WAIT_FRAMES, 2};
+    Instruction i3{Opcode::SET_VELOCITY_X, Fixed(0.0).raw};
+    Instruction i4{Opcode::END};
+    attackState.bytecode = {i1, i2, i3, i4};
+    states[1] = attackState;
+
+    vm.changeState(1);
+    vm.execute(states);
+    TEST_ASSERT(body.velocity.x == Fixed(10.0), "VM executed SET_VELOCITY_X");
+
+    uint8_t buffer[StateMachineVM::getSize()];
+    vm.serialize(buffer);
+    StateMachineVM restoredVM;
+    restoredVM.bind(&body);
+    restoredVM.deserialize(buffer);
+    TEST_ASSERT(restoredVM.currentStateId == 1 && restoredVM.waitTimer == 2, "VM state serialized/deserialized without pointer pollution");
+}
+
+void test_rollback_rng() {
+    std::cout << "\n=== Testing Rollback PCG RNG ===" << std::endl;
+    RollbackRNG rng1, rng2;
+    rng1.seed(12345ULL, 6789ULL);
+    rng2.seed(12345ULL, 6789ULL);
+
+    uint32_t val1 = rng1.next();
+    uint32_t val2 = rng2.next();
+    TEST_ASSERT(val1 == val2, "Rollback RNG bit-exact determinism with identical seeds");
+
+    Fixed fixedRnd = rng1.nextFixed();
+    TEST_ASSERT(fixedRnd >= Fixed(0) && fixedRnd <= Fixed(1), "Rollback RNG Fixed-point range [0, 1]");
+
+    int intRnd = rng1.nextInt(10, 20);
+    TEST_ASSERT(intRnd >= 10 && intRnd <= 20, "Rollback RNG integer range [10, 20]");
+
+    uint8_t buffer[RollbackRNG::getSize()];
+    rng1.serialize(buffer);
+    uint32_t forwardVal = rng1.next();
+    rng1.deserialize(buffer);
+    uint32_t rewoundVal = rng1.next();
+    TEST_ASSERT(forwardVal == rewoundVal, "Rollback RNG state rewinds deterministically");
+}
+
+void test_sync_manager() {
+    std::cout << "\n=== Testing SyncManager ===" << std::endl;
+    SyncManager sync;
+    TEST_ASSERT(!sync.isReady(), "SyncManager initially not ready");
+    sync.startSync();
+    TEST_ASSERT(sync.getState() == SyncManager::SYNCING, "SyncManager entered SYNCING state");
+
+    for (int i = 0; i < 10; i++) {
+        sync.receivePong(40); // 40ms RTT
+    }
+    TEST_ASSERT(sync.isReady(), "SyncManager ready after 10 pongs");
+    TEST_ASSERT(sync.getAverageRTT() == 40, "SyncManager average RTT calculation");
+    TEST_ASSERT(sync.getRecommendedFrameDelay() == 1, "SyncManager recommended frame advantage calculation");
+}
+
+void test_event_bus() {
+    std::cout << "\n=== Testing Decoupled EventBus ===" << std::endl;
+    EventBus bus;
+    int receivedDmg = 0;
+    bus.subscribe<HitEvent>([&](const HitEvent& e) {
+        receivedDmg += e.damage;
+    });
+
+    HitEvent hit1; hit1.damage = 25;
+    bus.publish(hit1);
+    HitEvent hit2; hit2.damage = 35;
+    bus.publish(hit2);
+
+    TEST_ASSERT(receivedDmg == 60, "EventBus dispatched typed events to subscribers");
+}
+
+void test_camera_and_vfx() {
+    std::cout << "\n=== Testing Camera System & VFX ===" << std::endl;
+    RollbackCamera cam;
+    cam.target = Vector2(100.0, 100.0);
+    cam.applyShake(Fixed(10.0), 5);
+    cam.update(Fixed(0.016));
+
+    TEST_ASSERT(cam.currentShakeOffset.lengthSquared() > Fixed(0), "Camera screenshake active");
+    TEST_ASSERT(cam.shakeFrames == 4, "Camera shake frame decremented");
+
+    uint8_t camBuf[RollbackCamera::getSize()];
+    cam.serialize(camBuf);
+    RollbackCamera restoredCam;
+    restoredCam.deserialize(camBuf);
+    TEST_ASSERT(cam.position == restoredCam.position && cam.shakeFrames == restoredCam.shakeFrames, "Camera rollback serialization");
+
+    VFXSystem vfx;
+    vfx.spawnExplosion(Vector2(0.0, 0.0), Fixed(5.0), 10, 1);
+    TEST_ASSERT(vfx.particles[0].active, "VFX explosion spawned particles");
+    vfx.update(Fixed(0.016));
+    TEST_ASSERT(vfx.particles[0].lifetime < vfx.particles[0].maxLifetime, "VFX particle lifetime decayed");
+
+    uint8_t vfxBuf[VFXSystem::getSize()];
+    vfx.serialize(vfxBuf);
+    VFXSystem restoredVfx;
+    restoredVfx.deserialize(vfxBuf);
+    TEST_ASSERT(restoredVfx.particles[0].active, "VFX rollback snapshot restored");
+}
+
+void test_predictive_smoothing_and_controllers() {
+    std::cout << "\n=== Testing Predictive Smoothing, Controllers & Raycast ===" << std::endl;
+    PredictiveSmoother smoother;
+    smoother.snapTo(Vector3(0.0, 0.0, 0.0));
+    smoother.setTarget(Vector3(10.0, 0.0, 0.0));
+    smoother.updateVisuals(Fixed(0.016));
+    TEST_ASSERT(smoother.getRenderPosition().x > Fixed(0) && smoother.getRenderPosition().x < Fixed(10.0), "Predictive smoother smoothly glides towards target");
+
+    PhysicsBody platBody;
+    platBody.position = Vector2(0.0, 0.0);
+    PlatformerController platCtrl;
+    platCtrl.bind(&platBody);
+
+    Input jumpInp; jumpInp.buttons = 1; jumpInp.moveX = 100; jumpInp.moveY = 0;
+    platCtrl.update(jumpInp);
+    TEST_ASSERT(platCtrl.isJumping && platBody.velocity.y > Fixed(0), "Platformer jump executed");
+    TEST_ASSERT(platBody.velocity.x == platCtrl.moveSpeed, "Platformer horizontal movement");
+
+    PhysicsBody tdBody;
+    TopDownController tdCtrl;
+    tdCtrl.bind(&tdBody);
+    Input tdInp; tdInp.moveX = 100; tdInp.moveY = 100; tdInp.buttons = 0;
+    tdCtrl.update(tdInp);
+    TEST_ASSERT(tdBody.velocity.x < tdCtrl.moveSpeed && tdBody.velocity.x > Fixed(0), "TopDown diagonal speed normalized");
+
+    PhysicsBody targetBody;
+    targetBody.position = Vector2(10.0, 0.0);
+    targetBody.size = Vector2(1.0, 1.0);
+    targetBody.active = true;
+
+    PhysicsBody bodiesList[1] = { targetBody };
+    RaycastHit hit = Raycaster::cast(Vector2(0.0, 0.0), Vector2(1.0, 0.0), Fixed(20.0), bodiesList, 1);
+    TEST_ASSERT(hit.hit, "Raycaster hit target body");
+    TEST_ASSERT(hit.distance == Fixed(9.0), "Raycaster distance exactly matches target min bounds (10 - 1)");
+}
+
 int main() {
     std::cout << "========================================" << std::endl;
     std::cout << "   FrameZero Engine - Complete Test Suite" << std::endl;
@@ -517,6 +760,17 @@ int main() {
     test_combat_hitstop();
     test_deterministic_trig();
     test_ecs_serialization();
+    test_vector3_and_quaternion();
+    test_physics_body_3d();
+    test_polygon_collider_sat();
+    test_quadtree();
+    test_flow_field();
+    test_state_machine_vm();
+    test_rollback_rng();
+    test_sync_manager();
+    test_event_bus();
+    test_camera_and_vfx();
+    test_predictive_smoothing_and_controllers();
     
     std::cout << "\n=== Testing Deterministic A* Pathfinding ===\n";
     FrameZero::Pathfinder pf(10, 10, FrameZero::Fixed(10));
