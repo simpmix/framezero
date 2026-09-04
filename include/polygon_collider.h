@@ -88,14 +88,14 @@ private:
 
         // Project p1
         for (int i = 0; i < p1.vertexCount; i++) {
-            Fixed proj = Vector2::dot(p1.vertices[i], axis);
+            Fixed proj = p1.vertices[i].dot(axis);
             if (proj < min1) min1 = proj;
             if (proj > max1) max1 = proj;
         }
 
         // Project p2
         for (int i = 0; i < p2.vertexCount; i++) {
-            Fixed proj = Vector2::dot(p2.vertices[i], axis);
+            Fixed proj = p2.vertices[i].dot(axis);
             if (proj < min2) min2 = proj;
             if (proj > max2) max2 = proj;
         }

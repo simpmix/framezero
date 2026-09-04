@@ -42,6 +42,7 @@ struct Vector2 {
     bool operator!=(const Vector2& o) const { return !(*this == o); }
 
     Fixed dot(const Vector2& o) const { return x * o.x + y * o.y; }
+    static Fixed dot(const Vector2& a, const Vector2& b) { return a.dot(b); }
     
     Fixed lengthSquared() const { return x * x + y * y; }
     Fixed length() const { return Fixed::sqrt(lengthSquared()); }
