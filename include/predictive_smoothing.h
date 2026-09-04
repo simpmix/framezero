@@ -10,8 +10,9 @@ public:
     Vector3 visualPosition;
     Vector3 targetPosition;
     Fixed smoothSpeed;
+    Fixed snapThresholdSq;
     
-    PredictiveSmoother() : visualPosition(0,0,0), targetPosition(0,0,0), smoothSpeed(Fixed(15)) {}
+    PredictiveSmoother() : visualPosition(0,0,0), targetPosition(0,0,0), smoothSpeed(Fixed(15)), snapThresholdSq(Fixed(100)) {}
     
     void snapTo(const Vector3& pos) {
         visualPosition = pos;
@@ -28,7 +29,7 @@ public:
         Vector3 diff = targetPosition - visualPosition;
         
         // If the error is too massive (e.g. teleporting), just snap
-        if (diff.lengthSquared() > Fixed(25)) {
+        if (diff.lengthSquared() > snapThresholdSq) {
             visualPosition = targetPosition;
             return;
         }

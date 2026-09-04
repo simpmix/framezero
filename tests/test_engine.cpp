@@ -707,9 +707,14 @@ void test_predictive_smoothing_and_controllers() {
     std::cout << "\n=== Testing Predictive Smoothing, Controllers & Raycast ===" << std::endl;
     PredictiveSmoother smoother;
     smoother.snapTo(Vector3(0.0, 0.0, 0.0));
-    smoother.setTarget(Vector3(10.0, 0.0, 0.0));
+    smoother.setTarget(Vector3(2.0, 0.0, 0.0));
     smoother.updateVisuals(Fixed(0.016));
-    TEST_ASSERT(smoother.getRenderPosition().x > Fixed(0) && smoother.getRenderPosition().x < Fixed(10.0), "Predictive smoother smoothly glides towards target");
+    TEST_ASSERT(smoother.getRenderPosition().x > Fixed(0) && smoother.getRenderPosition().x < Fixed(2.0), "Predictive smoother smoothly glides towards target");
+
+    // Test snapping when error exceeds snap threshold (e.g. teleporting)
+    smoother.setTarget(Vector3(50.0, 0.0, 0.0));
+    smoother.updateVisuals(Fixed(0.016));
+    TEST_ASSERT(smoother.getRenderPosition().x == Fixed(50.0), "Predictive smoother snaps on massive teleport divergence");
 
     PhysicsBody platBody;
     platBody.position = Vector2(0.0, 0.0);
